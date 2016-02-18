@@ -45,10 +45,10 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/imagej/minimal-ij1-plugin</connection>
-        <developerConnection>scm:git:git@github.com:imagej/minimal-ij1-plugin</developerConnection>
+        <connection>scm:git:git://bitbucket.org/penuts7644/photonimaging.git</connection>
+        <developerConnection>scm:git:git@bitbucket.org/penuts7644/photonimaging.git</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/imagej/minimal-ij1-plugin</url>
+        <url>https://bitbucket.org/penuts7644/photonimaging</url>
     </scm>
 
     <properties>
