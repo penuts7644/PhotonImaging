@@ -189,4 +189,8 @@ public class Process_Pixels implements PlugInFilter {
 		// run the plugin
 		IJ.runPlugIn(clazz.getName(), "");
 	}
+
+        public void processPixelAbout() {
+		showAbout();
+	}
 }
