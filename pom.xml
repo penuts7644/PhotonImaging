@@ -13,7 +13,7 @@
     </parent>
 
     <groupId>nl.bioinf.lscheffer_wvanhelvoirt</groupId>
-    <artifactId>PhotonImaging</artifactId>
+    <artifactId>Photon_Imaging</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <name>PhotonImaging</name>
@@ -69,11 +69,11 @@
             </plugin>
         </plugins>
     </build>
-
     <dependencies>
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
+            <version>1.50e</version>
         </dependency>
     </dependencies>
 </project>
