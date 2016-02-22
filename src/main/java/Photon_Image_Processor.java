@@ -6,12 +6,14 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
+import java.awt.Frame;
 
 /**
  * Photon_Image_Processor
@@ -67,6 +69,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         this.width = ip.getWidth();
         this.height = ip.getHeight();
         
+        
         this.preprocessImages();
         MaximumFinder maxFind = new MaximumFinder();
         this.findPhotons(ip, maxFind);
@@ -92,11 +95,16 @@ public class Photon_Image_Processor implements PlugInFilter {
         float[] xCo = r.getColumn(0);
         float[] yCo = r.getColumn(1);
         
+        //IJ.runMacro("if (isOpen('Results')) {selectWindow('Results'); run('Close');}"); 
+        IJ.selectWindow("Results"); 
+        IJ.run("Close"); 
+        
         System.out.println("slice number: " + ip.getSliceNumber());
-        for (int i = 0; i < r.size(); i++){
+        for (int i = 0; i < xCo.length; i++){
             System.out.println(i + ": x = " + xCo[i] + ", y = " + yCo[i]);
-           
         }
+        
+         
     }
     
 
