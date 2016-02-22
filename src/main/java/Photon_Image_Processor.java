@@ -1,9 +1,6 @@
 /*
- * To the extent possible under law, the Fiji developers have waived
- * all copyright and related or neighboring rights to this tutorial code.
- *
- * See the CC0 1.0 Universal license for details:
- *     http://creativecommons.org/publicdomain/zero/1.0/
+ * Copyright (c) 2016 Lonneke Scheffer & Wout van Helvoirt
+ * All rights reserved
  */
 
 import ij.IJ;
@@ -14,13 +11,13 @@ import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
 
 /**
- * ProcessPixels
+ * Photon_Image_Processor
  *
- * A template for processing each pixel of either GRAY8, GRAY16, GRAY32 or COLOR_RGB images.
+ * Description comes here.
  *
- * @author The Fiji Team
+ * @author Lonneke Scheffer & Wout van Helvoirt
  */
-public class Process_Pixels implements PlugInFilter {
+public class Photon_Image_Processor implements PlugInFilter {
 
     protected ImagePlus image;
 
@@ -33,11 +30,17 @@ public class Process_Pixels implements PlugInFilter {
     public String name;
 
     /**
+     * Setup method as initializer.
+     *
+     * Setup method is the initializer for this class and will always be ran first. Arguments necessary can be given
+     * here. Setup method needs to be overridden.
+     *
      * @see ij.plugin.filter.PlugInFilter#setup(java.lang.String, ij.ImagePlus)
+     * @return None if help shown, else plugin does gray 8, 16, 32 as well as color rgb.
      */
     @Override
-    public int setup(String arg, ImagePlus imp) {
-        if (arg.equals("about")) {
+    public int setup(String argument, ImagePlus imp) {
+        if (argument.equals("about")) {
             showAbout();
             return DONE;
         }
@@ -47,6 +50,11 @@ public class Process_Pixels implements PlugInFilter {
     }
 
     /**
+     * Executed method when selected.
+     *
+     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji.
+     * Run method needs to be overridden.
+     *
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -62,7 +70,7 @@ public class Process_Pixels implements PlugInFilter {
     }
 
     private boolean showDialog() {
-        GenericDialog gd = new GenericDialog("Process pixels");
+        GenericDialog gd = new GenericDialog("Photon Image Processor");
 
         // default value is 0.00, 2 digits right of the decimal point
         gd.addNumericField("value", 0.00, 2);
@@ -160,26 +168,22 @@ public class Process_Pixels implements PlugInFilter {
     }
 
     public void showAbout() {
-        IJ.showMessage("ProcessPixels",
-                "a template for processing each pixel of an image"
+        IJ.showMessage("About Photon Image Processor",
+                "Test help message."
         );
-    }
-
-    public void processPixelAbout() {
-        showAbout();
     }
 
     /**
      * Main method for debugging.
      *
      * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plugin, e.g.
-     * after setting breakpoints.
+     * after setting breakpoints. Main method will get executed when running this file from IDE.
      *
      * @param args unused
      */
     public static void main(String[] args) {
         // set the plugins.dir property to make the plugin appear in the Plugins menu
-        Class<?> clazz = Process_Pixels.class;
+        Class<?> clazz = Photon_Image_Processor.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
         String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
         System.setProperty("plugins.dir", pluginsDir);

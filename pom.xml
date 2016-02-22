@@ -52,7 +52,7 @@
     </scm>
 
     <properties>
-        <main-class>Process_Pixels</main-class>
+        <main-class>Photon_Image_Processor</main-class>
     </properties>
 
     <build>
