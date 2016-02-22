@@ -49,7 +49,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         }
 
         this.image = imp;
-        return PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32 | PlugInFilter.DOES_RGB;
+        return PlugInFilter.DOES_STACKS | PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32 | PlugInFilter.DOES_RGB;
     }
 
     /**
@@ -58,6 +58,7 @@ public class Photon_Image_Processor implements PlugInFilter {
      * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji.
      * Run method needs to be overridden.
      *
+     * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -66,34 +67,38 @@ public class Photon_Image_Processor implements PlugInFilter {
         this.width = ip.getWidth();
         this.height = ip.getHeight();
         
-        GenericDialog gd = new GenericDialog("Photon Image Processor");
-
-       
-        MaximumFinder m = new MaximumFinder();
-        System.out.println(m.findMaxima(ip, 50.0, MaximumFinder.LIST, false));
+        this.preprocessImages();
+        MaximumFinder maxFind = new MaximumFinder();
+        this.findPhotons(ip, maxFind);
+        
+    }
+    
+    /**
+     * Preprocess the images.
+     * For instance: adjusting brightness/contrast/noise calibration
+     * 
+     */
+    private void preprocessImages() {}
+    
+    /**
+     * Find the photons in the current image, and return their approximate coordinates.
+     * 
+     */
+    private void findPhotons(ImageProcessor ip, MaximumFinder maxFind) {
+        maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
         
         //Analyzer a = new Analyzer(ip);
         ResultsTable r = Analyzer.getResultsTable();
         float[] xCo = r.getColumn(0);
         float[] yCo = r.getColumn(1);
-       
         
+        System.out.println("slice number: " + ip.getSliceNumber());
         for (int i = 0; i < r.size(); i++){
             System.out.println(i + ": x = " + xCo[i] + ", y = " + yCo[i]);
-            gd.addStringField("x", xCo[i]+"");
+           
         }
-                       
-        // default value is 0.00, 2 digits right of the decimal point
-        gd.addNumericField("value", 0.00, 2);
-        gd.addStringField("name", "John");
-        gd.showDialog();
-
-//        if (showDialog()) {
-//            process(ip);
-//            image.updateAndDraw();
-//        }
     }
-
+    
 
     public void showAbout() {
         IJ.showMessage("About Photon Image Processor",
@@ -120,7 +125,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         new ImageJ();
 
         // Open the image sequence
-        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
+        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
         ImagePlus image = IJ.getImage();
         
         // Only if you use new ImagePlus(path)
