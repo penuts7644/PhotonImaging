@@ -42,11 +42,11 @@ public class Photon_Image_Processor implements PlugInFilter {
     public int setup(String argument, ImagePlus imp) {
         if (argument.equals("about")) {
             showAbout();
-            return DONE;
+            return PlugInFilter.DONE;
         }
 
         image = imp;
-        return DOES_8G | DOES_16 | DOES_32 | DOES_RGB;
+        return PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32 | PlugInFilter.DOES_RGB;
     }
 
     /**
