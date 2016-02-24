@@ -31,7 +31,6 @@ public class Photon_Image_Processor implements PlugInFilter {
     // image property members
 //    private int width;
 //    private int height;
-
     // plugin parameters
     public int photonOutlineSize = 20;
 
@@ -55,7 +54,6 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        if (!dialogCorrect) {
 //            return PlugInFilter.DONE;
 //        }
-
         this.image = imp;
         return PlugInFilter.DOES_STACKS | PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32;
     }
@@ -85,18 +83,19 @@ public class Photon_Image_Processor implements PlugInFilter {
      * Preprocess the images. For instance: adjusting brightness/contrast/noise calibration
      *
      */
-    private void preprocessImages() {}
+    private void preprocessImages() {
+    }
 
     /**
      * Find the photons in the current image using MaximumFinder, and return their approximate coordinates.
-     * 
+     *
      */
     private float[][] findPhotons(ImageProcessor ip, MaximumFinder maxFind) {
         float[][] coordinates;
-        
+
         // Find the maxima using MaximumFinder
         maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
-       
+
         // Retrieve the results
         ResultsTable results = ResultsTable.getResultsTable();
         coordinates = new float[2][results.size()];
@@ -105,14 +104,14 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         // Close the results table without showing the dialog for saving data
         ResultsTable.getResultsWindow().close(false);
-        
+
         return coordinates;
     }
 
     private void outlinePhotons(float xCor, float yCor) {
-        int halfPhotonGrid = this.photonOutlineSize / 2;
-        Roi test = new Roi((xCor-halfPhotonGrid), (yCor-halfPhotonGrid), this.photonOutlineSize, this.photonOutlineSize);
-        System.out.println("x = " + test.getXBase() + ": y = " + test.getYBase());
+        int halfPOS = this.photonOutlineSize / 2;
+        Roi photonOutline = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
+        System.out.println("x = " + photonOutline.getXBase() + ": y = " + photonOutline.getYBase());
     }
 
     private boolean showDialog() {
