@@ -8,6 +8,7 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
+import ij.gui.Roi;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.MaximumFinder;
@@ -27,12 +28,11 @@ public class Photon_Image_Processor implements PlugInFilter {
     protected ImagePlus image;
 
     // image property members
-    private int width;
-    private int height;
+//    private int width;
+//    private int height;
 
     // plugin parameters
-    public double value;
-    public String name;
+    public int photonOutlineSize = 20;
 
     /**
      * Setup method as initializer.
@@ -50,15 +50,20 @@ public class Photon_Image_Processor implements PlugInFilter {
             return PlugInFilter.DONE;
         }
 
+//        boolean dialogCorrect = this.showDialog();
+//        if (!dialogCorrect) {
+//            return PlugInFilter.DONE;
+//        }
+
         this.image = imp;
-        return PlugInFilter.DOES_STACKS | PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32 | PlugInFilter.DOES_RGB;
+        return PlugInFilter.DOES_STACKS | PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32;
     }
 
     /**
      * Executed method when selected.
      *
-     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji.
-     * Run method needs to be overridden.
+     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
+     * method needs to be overridden.
      *
      * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
@@ -66,47 +71,67 @@ public class Photon_Image_Processor implements PlugInFilter {
     @Override
     public void run(ImageProcessor ip) {
         // get width and height
-        this.width = ip.getWidth();
-        this.height = ip.getHeight();
-        
-        
+//        this.width = ip.getWidth();
+//        this.height = ip.getHeight();
+
         this.preprocessImages();
         MaximumFinder maxFind = new MaximumFinder();
         this.findPhotons(ip, maxFind);
-        
+
     }
-    
+
     /**
-     * Preprocess the images.
-     * For instance: adjusting brightness/contrast/noise calibration
-     * 
+     * Preprocess the images. For instance: adjusting brightness/contrast/noise calibration
+     *
      */
     private void preprocessImages() {}
-    
+
     /**
      * Find the photons in the current image, and return their approximate coordinates.
-     * 
+     *
      */
     private void findPhotons(ImageProcessor ip, MaximumFinder maxFind) {
         maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
-        
+
         //Analyzer a = new Analyzer(ip);
         ResultsTable r = Analyzer.getResultsTable();
         float[] xCo = r.getColumn(0);
         float[] yCo = r.getColumn(1);
-        
+
         //IJ.runMacro("if (isOpen('Results')) {selectWindow('Results'); run('Close');}"); 
-        IJ.selectWindow("Results"); 
-        IJ.run("Close"); 
-        
+        IJ.selectWindow("Results");
+        IJ.run("Close");
+
         System.out.println("slice number: " + ip.getSliceNumber());
-        for (int i = 0; i < xCo.length; i++){
+        for (int i = 0; i < xCo.length; i++) {
             System.out.println(i + ": x = " + xCo[i] + ", y = " + yCo[i]);
+            this.outlinePhotons(xCo[i], yCo[i]);
         }
-        
-         
+
     }
-    
+
+    private void outlinePhotons(float xCor, float yCor) {
+        int halfPhotonGrid = this.photonOutlineSize / 2;
+        Roi test = new Roi((xCor-halfPhotonGrid), (yCor-halfPhotonGrid), this.photonOutlineSize, this.photonOutlineSize);
+        System.out.println("x = " + test.getXBase() + ": y = " + test.getYBase());
+    }
+
+    private boolean showDialog() {
+        GenericDialog gd = new GenericDialog("Photon Image Processor");
+
+        // default value is 20, 0 digits right of the decimal point
+        gd.addSlider("Photon Grid Size", 1, 25, 1);
+
+        gd.showDialog();
+        if (gd.wasCanceled()) {
+            return false;
+        }
+
+        // get entered values
+        this.photonOutlineSize = (int) gd.getNextNumber();
+
+        return true;
+    }
 
     public void showAbout() {
         IJ.showMessage("About Photon Image Processor",
@@ -135,18 +160,14 @@ public class Photon_Image_Processor implements PlugInFilter {
         // Open the image sequence
         IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
         ImagePlus image = IJ.getImage();
-        
+
         // Only if you use new ImagePlus(path)
         //image.show();
-
         // run the plugin
         IJ.runPlugIn(clazz.getName(), "");
     }
 
-    
 }
-
-
 
 //    private boolean showDialog() {
 //        GenericDialog gd = new GenericDialog("Photon Image Processor");
@@ -166,19 +187,18 @@ public class Photon_Image_Processor implements PlugInFilter {
 //
 //        return true;
 //    }
-
-    /**
-     * Process an image.
-     *
-     * Please provide this method even if {@link ij.plugin.filter.PlugInFilter} does require it; the method
-     * {@link ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)} can only handle 2-dimensional data.
-     *
-     * If your plugin does not change the pixels in-place, make this method return the results and change the
-     * {@link #setup(java.lang.String, ij.ImagePlus)} method to return also the
-     * <i>DOES_NOTHING</i> flag.
-     *
-     * @param image the image (possible multi-dimensional)
-     */
+/**
+ * Process an image.
+ *
+ * Please provide this method even if {@link ij.plugin.filter.PlugInFilter} does require it; the method
+ * {@link ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)} can only handle 2-dimensional data.
+ *
+ * If your plugin does not change the pixels in-place, make this method return the results and change the
+ * {@link #setup(java.lang.String, ij.ImagePlus)} method to return also the
+ * <i>DOES_NOTHING</i> flag.
+ *
+ * @param image the image (possible multi-dimensional)
+ */
 //    public void process(ImagePlus image) {
 //        // slice numbers start with 1 for historical reasons
 //        for (int i = 1; i <= image.getStackSize(); i++) {
