@@ -14,6 +14,7 @@ import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
+import ij.text.TextWindow;
 import java.awt.Frame;
 
 /**
@@ -87,27 +88,25 @@ public class Photon_Image_Processor implements PlugInFilter {
     private void preprocessImages() {}
 
     /**
-     * Find the photons in the current image, and return their approximate coordinates.
-     *
+     * Find the photons in the current image using MaximumFinder, and return their approximate coordinates.
+     * 
      */
-    private void findPhotons(ImageProcessor ip, MaximumFinder maxFind) {
+    private float[][] findPhotons(ImageProcessor ip, MaximumFinder maxFind) {
+        float[][] coordinates;
+        
+        // Find the maxima using MaximumFinder
         maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
+       
+        // Retrieve the results
+        ResultsTable results = ResultsTable.getResultsTable();
+        coordinates = new float[2][results.size()];
+        coordinates[0] = results.getColumn(0);
+        coordinates[1] = results.getColumn(1);
 
-        //Analyzer a = new Analyzer(ip);
-        ResultsTable r = Analyzer.getResultsTable();
-        float[] xCo = r.getColumn(0);
-        float[] yCo = r.getColumn(1);
-
-        //IJ.runMacro("if (isOpen('Results')) {selectWindow('Results'); run('Close');}"); 
-        IJ.selectWindow("Results");
-        IJ.run("Close");
-
-        System.out.println("slice number: " + ip.getSliceNumber());
-        for (int i = 0; i < xCo.length; i++) {
-            System.out.println(i + ": x = " + xCo[i] + ", y = " + yCo[i]);
-            this.outlinePhotons(xCo[i], yCo[i]);
-        }
-
+        // Close the results table without showing the dialog for saving data
+        ResultsTable.getResultsWindow().close(false);
+        
+        return coordinates;
     }
 
     private void outlinePhotons(float xCor, float yCor) {
