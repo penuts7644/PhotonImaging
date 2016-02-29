@@ -72,10 +72,18 @@ public class Photon_Image_Processor implements PlugInFilter {
         // get width and height
 //        this.width = ip.getWidth();
 //        this.height = ip.getHeight();
-
+        float[][] rawCoordinates;
+                
         this.preprocessImages();
         MaximumFinder maxFind = new MaximumFinder();
-        this.findPhotons(ip, maxFind);
+        rawCoordinates = this.findPhotons(ip, maxFind);
+        
+        System.out.println();
+        for (int i = 0; i < rawCoordinates[0].length; i++){
+            float x = rawCoordinates[0][i];
+            float y = rawCoordinates[1][i];
+            this.outlinePhotons(x, y);
+        }
 
     }
 
@@ -95,7 +103,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         // Find the maxima using MaximumFinder
         maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
-
+        
         // Retrieve the results
         ResultsTable results = ResultsTable.getResultsTable();
         coordinates = new float[2][results.size()];
@@ -156,7 +164,8 @@ public class Photon_Image_Processor implements PlugInFilter {
         new ImageJ();
 
         // Open the image sequence
-        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path)
