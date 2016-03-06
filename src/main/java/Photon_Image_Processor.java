@@ -6,16 +6,14 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
 import ij.measure.ResultsTable;
-import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.RankFilters;
 import ij.process.ImageProcessor;
-import ij.text.TextWindow;
-import java.awt.Frame;
+
 
 /**
  * Photon_Image_Processor
@@ -74,11 +72,11 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        this.height = ip.getHeight();
         float[][] rawCoordinates;
                 
-        this.preprocessImages();
+        this.preprocessImages(ip);
         MaximumFinder maxFind = new MaximumFinder();
         rawCoordinates = this.findPhotons(ip, maxFind);
         
-        System.out.println();
+        System.out.println("\n************\n" + rawCoordinates[0].length + " photons found\n************");
         for (int i = 0; i < rawCoordinates[0].length; i++){
             float x = rawCoordinates[0][i];
             float y = rawCoordinates[1][i];
@@ -91,7 +89,10 @@ public class Photon_Image_Processor implements PlugInFilter {
      * Preprocess the images. For instance: adjusting brightness/contrast/noise calibration
      *
      */
-    private void preprocessImages() {
+    private void preprocessImages(ImageProcessor ip) {
+        // Perform 'despeckle' using RankFilters
+        RankFilters r = new RankFilters();
+        r.rank(ip, 1, RankFilters.MEDIAN);
     }
 
     /**
@@ -102,7 +103,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         float[][] coordinates;
 
         // Find the maxima using MaximumFinder
-        maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
+        maxFind.findMaxima(ip, 30.0, MaximumFinder.LIST, false);
         
         // Retrieve the results
         ResultsTable results = ResultsTable.getResultsTable();
