@@ -6,16 +6,14 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
 import ij.measure.ResultsTable;
-import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.RankFilters;
 import ij.process.ImageProcessor;
-import ij.text.TextWindow;
-import java.awt.Frame;
+
 
 /**
  * Photon_Image_Processor
@@ -72,16 +70,19 @@ public class Photon_Image_Processor implements PlugInFilter {
         // get width and height
 //        this.width = ip.getWidth();
 //        this.height = ip.getHeight();
-
-        this.preprocessImages();
+        float[][] rawCoordinates;
+        
+        this.preprocessImages(ip);
+        
         MaximumFinder maxFind = new MaximumFinder();
-        float[][] rawCoordinates = this.findPhotons(ip, maxFind);
+        rawCoordinates = this.findPhotons(ip, maxFind);
         
-        for (int i = 1; i < rawCoordinates[0].length; i++){
-            float[] rawCoordinatePair = {rawCoordinates[0][i], rawCoordinates[1][i]};
-            this.outlinePhoton(rawCoordinatePair[0], rawCoordinatePair[1]);
+        System.out.println("\n************\n" + rawCoordinates[0].length + " photons found\n************");
+        for (int i = 0; i < rawCoordinates[0].length; i++){
+            float x = rawCoordinates[0][i];
+            float y = rawCoordinates[1][i];
+            this.outlinePhotons(x, y);
         }
-        
 
     }
 
@@ -89,7 +90,10 @@ public class Photon_Image_Processor implements PlugInFilter {
      * Preprocess the images. For instance: adjusting brightness/contrast/noise calibration
      *
      */
-    private void preprocessImages() {
+    private void preprocessImages(ImageProcessor ip) {
+        // Perform 'despeckle' using RankFilters
+        RankFilters r = new RankFilters();
+        r.rank(ip, 1, RankFilters.MEDIAN);
     }
 
     /**
@@ -100,8 +104,8 @@ public class Photon_Image_Processor implements PlugInFilter {
         float[][] coordinates;
 
         // Find the maxima using MaximumFinder
-        maxFind.findMaxima(ip, 50.0, MaximumFinder.LIST, false);
-
+        maxFind.findMaxima(ip, 30.0, MaximumFinder.LIST, false);
+        
         // Retrieve the results
         ResultsTable results = ResultsTable.getResultsTable();
         coordinates = new float[2][results.size()];
@@ -117,7 +121,7 @@ public class Photon_Image_Processor implements PlugInFilter {
     private void outlinePhoton(float xCor, float yCor) {
         int halfPOS = this.photonOutlineSize / 2;
         Roi photonOutline = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
-        System.out.println("x = " + photonOutline.getXBase() + ": y = " + photonOutline.getYBase());
+        //System.out.println("x = " + photonOutline.getXBase() + ": y = " + photonOutline.getYBase());
     }
 
     private boolean showDialog() {
@@ -162,7 +166,8 @@ public class Photon_Image_Processor implements PlugInFilter {
         new ImageJ();
 
         // Open the image sequence
-        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path)
