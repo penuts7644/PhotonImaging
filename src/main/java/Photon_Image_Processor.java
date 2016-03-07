@@ -75,7 +75,13 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         this.preprocessImages();
         MaximumFinder maxFind = new MaximumFinder();
-        this.findPhotons(ip, maxFind);
+        float[][] rawCoordinates = this.findPhotons(ip, maxFind);
+        
+        for (int i = 1; i < rawCoordinates[0].length; i++){
+            float[] rawCoordinatePair = {rawCoordinates[0][i], rawCoordinates[1][i]};
+            this.outlinePhoton(rawCoordinatePair[0], rawCoordinatePair[1]);
+        }
+        
 
     }
 
@@ -99,8 +105,8 @@ public class Photon_Image_Processor implements PlugInFilter {
         // Retrieve the results
         ResultsTable results = ResultsTable.getResultsTable();
         coordinates = new float[2][results.size()];
-        coordinates[0] = results.getColumn(0);
-        coordinates[1] = results.getColumn(1);
+        coordinates[0] = results.getColumn(0); // x coordinates
+        coordinates[1] = results.getColumn(1); // y coordinates
 
         // Close the results table without showing the dialog for saving data
         ResultsTable.getResultsWindow().close(false);
@@ -108,7 +114,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         return coordinates;
     }
 
-    private void outlinePhotons(float xCor, float yCor) {
+    private void outlinePhoton(float xCor, float yCor) {
         int halfPOS = this.photonOutlineSize / 2;
         Roi photonOutline = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
         System.out.println("x = " + photonOutline.getXBase() + ": y = " + photonOutline.getYBase());
