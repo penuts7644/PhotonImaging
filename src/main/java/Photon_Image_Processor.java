@@ -81,7 +81,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         for (int i = 0; i < rawCoordinates[0].length; i++){
             float x = rawCoordinates[0][i];
             float y = rawCoordinates[1][i];
-            this.outlinePhotons(x, y);
+            this.outlinePhoton(x, y);
         }
 
     }
