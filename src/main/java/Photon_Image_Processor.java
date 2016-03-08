@@ -18,12 +18,12 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
-import ij.gui.ImageRoi;
 import ij.gui.Roi;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.RankFilters;
+import ij.process.AutoThresholder;
 import ij.process.ImageProcessor;
 
 
@@ -45,6 +45,8 @@ public class Photon_Image_Processor implements PlugInFilter {
 //    private int height;
     // plugin parameters
     public int photonOutlineSize = 20;
+    
+    private int temporaryCounter = 0;
 
     /**
      * Setup method as initializer.
@@ -94,11 +96,11 @@ public class Photon_Image_Processor implements PlugInFilter {
         MaximumFinder maxFind = new MaximumFinder();
         rawCoordinates = this.findPhotons(ip, maxFind);
         
-        System.out.println("\n************\n" + rawCoordinates[0].length + " photons found\n************");
+        //System.out.println("\n************\n" + rawCoordinates[0].length + " photons found\n************");
         for (int i = 0; i < rawCoordinates[0].length; i++){
             float x = rawCoordinates[0][i];
             float y = rawCoordinates[1][i];
-            this.outlinePhoton(x, y, ip);
+            this.findExactCoordinates(x, y, ip);
         }
         
         this.addToPhotonCount(rawCoordinates);
@@ -145,26 +147,146 @@ public class Photon_Image_Processor implements PlugInFilter {
         return coordinates;
     }
 
-    private void outlinePhoton(float xCor, float yCor, ImageProcessor processor) {
+    private void findExactCoordinates(float xCor, float yCor, ImageProcessor processor) {
         int halfPOS = this.photonOutlineSize / 2;
         Roi photonRoi = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
-        
-      
-        // kopie maken werkt, maar je kunt ook aan het eind gewoon resetRoi doen en dan crop
-        //ImageProcessor processorCopy = (ImageProcessor) processor.clone();
-        
 
         processor.setRoi(photonRoi);
-        ImagePlus photonImagePlus = new ImagePlus("single photon", processor.crop());
+        ImagePlus photonImagePlus = new ImagePlus("single photon " + this.temporaryCounter, processor.crop());
+            //photonImagePlus.show();
+            //System.out.println(photonImagePlus.isThreshold());
+            //System.out.println(String.join(" - ", AutoThresholder.getMethods()));
+//        if (this.temporaryCounter < 3){
+//            photonImagePlus.show();
+//        }
+        
+        //IJ.setAutoThreshold(photonImagePlus, "Mean dark B&W");
+            
+            //photonImagePlus.getProcessor().setAutoThreshold(AutoThresholder.Method.Mean, true, 2);
+            
+        ImageProcessor photonProc = photonImagePlus.getProcessor();
+        
+        
+        photonProc.setAutoThreshold(AutoThresholder.Method.Mean, false, ImageProcessor.BLACK_AND_WHITE_LUT);
+        
+//        57: 3.0, 10.0
+//115: 17.0, 16.0
+//192: 16.0, 15.0
+//194: 4.0, 10.0
+        
+        photonImagePlus.show();
+        photonImagePlus.updateAndDraw();
+        
+        //System.out.println(photonImagePlus.isThreshold());
 
+        
+        MaximumFinder m = new MaximumFinder();
+        m.findMaxima(photonProc, 10, MaximumFinder.LIST, true);
+        
+        ResultsTable results = ResultsTable.getResultsTable();
+        //System.out.println(results.getValue("X", 0) + ", " + results.getValue("Y", 0));
+        
+        ResultsTable.getResultsWindow().close(false);
+        
+        this.temporaryCounter++;
+        
+        if (results.getCounter() < 1){
+            System.out.println(this.temporaryCounter + " has no coordinates");
+//            newCoordinates[0] = xCor;
+//            newCoordinates[1] = yCor;
+//            return newCoordinates;
+        }else if (results.getCounter() > 1){
+            // There are multiple maxima found
+            for (int i = 0; i < results.getCounter(); i++){
+                if (results.getValue("X", i) == 10 || results.getValue("Y", i) == 10){
+//                    newCoordinates[0] = xCor;
+//                    newCoordinates[1] = yCor;
+//                    return newCoordinates;
+                    System.out.println(this.temporaryCounter + " has multiple but one with 10 10");
+                    photonImagePlus.close();
+                    return;
+                }
+            }
+            photonImagePlus.show();
+            System.out.println(this.temporaryCounter + " has multiple non-10 coordinates");
+            return;
+        }else {
+//            // 
+//            newCoordinates[0] = (float) (xCor + results.getValue("X", 0) - 10);
+//            newCoordinates[1] = (float) (yCor + results.getValue("Y", 0) - 10);
+//            return newCoordinates;
+            photonImagePlus.close();
+            if (results.getValue("X", 0) == 10 || results.getValue("Y", 0) == 10){
+                System.out.println(this.temporaryCounter + " has one with 10 10");
+                photonImagePlus.close();
+                return;
+            } else {
+                System.out.println(this.temporaryCounter + " IS SHIFTED");
+                return;
+            }
+        }
+   
+        
+//        try{
+//            if (results.getColumn(0).length > 1){
+//                photonImagePlus.show();
+//                System.out.println(this.temporaryCounter + ": " + results.getValue("X", 0) + ", " + results.getValue("Y", 0) + ", meer dan 1");
+//            }else if (results.getValue("X", 0) != 10){
+//                photonImagePlus.show();
+//                System.out.println(this.temporaryCounter + ": " + results.getValue("X", 0) + ", " + results.getValue("Y", 0));
+//            } else {
+//                photonImagePlus.close();
+//            }
+//        } catch(IllegalArgumentException e){
+//            photonImagePlus.show();
+//            System.out.println(this.temporaryCounter + ":  geen results");
+//        }
+
+        //photonImagePlus.close();
+        
             
-        photonImagePlus.close();
-        //photonImagePlus.show();
-            
-        // reset the processor back to normal
+        // Set the processor back to normal
         processor.resetRoi();
         processor.crop();
+            
         
+
+        
+        
+//                // 1. handle no results
+//        if (results.getCounter() < 1){
+//            System.out.println(this.temporaryCounter + " has no coordinates");
+//            newCoordinates[0] = xCor;
+//            newCoordinates[1] = yCor;
+//            return newCoordinates;
+//        } else if (results.getCounter() > 1){
+//            // There are multiple maxima found
+//            for (int i = 0; i < results.getCounter(); i++){
+//                if (results.getValue("X", i) == 10 || results.getValue("Y", i) == 10){
+//                    newCoordinates[0] = xCor;
+//                    newCoordinates[1] = yCor;
+//                    return newCoordinates;
+//                } else {
+//                    // HANDLE THIS
+//                    photonImagePlus.show();
+//                    System.out.println(this.temporaryCounter + " has multiple non-10 coordinates");
+//                    // dichtstbijzijnde vinden
+//                }
+//            }
+//        } else {
+//            // 
+//            newCoordinates[0] = (float) (xCor + results.getValue("X", 0) - 10);
+//            newCoordinates[1] = (float) (yCor + results.getValue("Y", 0) - 10);
+//            return newCoordinates;
+//        }
+    }
+    
+    private void addToPhotonCount(float[][] coordinates){
+        for (int i = 0; i < coordinates[0].length; i++){
+            int x = (int) coordinates[0][i];
+            int y = (int) coordinates[1][i];
+            this.photonCountMatrix[x][y] ++;
+        }
     }
 
     private boolean showDialog() {
@@ -210,8 +332,9 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         // Open the image sequence
         IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-        //IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
-        //IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
+//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path)
