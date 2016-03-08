@@ -1,6 +1,17 @@
 /*
  * Copyright (c) 2016 Lonneke Scheffer & Wout van Helvoirt
- * All rights reserved
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import ij.IJ;
@@ -25,6 +36,8 @@ import ij.process.ImageProcessor;
 public class Photon_Image_Processor implements PlugInFilter {
 
     protected ImagePlus image;
+    private int[][] photonCountMatrix;
+    
 
     // image property members
 //    private int width;
@@ -52,7 +65,10 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        if (!dialogCorrect) {
 //            return PlugInFilter.DONE;
 //        }
+        
         this.image = imp;
+        this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
+        
         return PlugInFilter.DOES_STACKS | PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32;
     }
 
@@ -83,6 +99,16 @@ public class Photon_Image_Processor implements PlugInFilter {
             float y = rawCoordinates[1][i];
             this.outlinePhoton(x, y);
         }
+        
+        this.addToPhotonCount(rawCoordinates);
+  
+// test print stukje van het count foton grid
+//        for (int i=1000; i < 1100; i++){
+//            for (int j=1000; j < 1100; j++){
+//                System.out.printf(this.photonCountMatrix[i][j] + " ");
+//            }
+//            System.out.println("");
+//        }
 
     }
 
@@ -122,6 +148,14 @@ public class Photon_Image_Processor implements PlugInFilter {
         int halfPOS = this.photonOutlineSize / 2;
         Roi photonOutline = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
         //System.out.println("x = " + photonOutline.getXBase() + ": y = " + photonOutline.getYBase());
+    }
+    
+    private void addToPhotonCount(float[][] coordinates) {
+        for (int i = 0; i < coordinates[0].length; i++){
+            int x = (int) coordinates[0][i];
+            int y = (int) coordinates[1][i];
+            this.photonCountMatrix[x][y] ++;
+        }
     }
 
     private boolean showDialog() {
@@ -166,8 +200,9 @@ public class Photon_Image_Processor implements PlugInFilter {
         new ImageJ();
 
         // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        //IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
+        //IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path)
