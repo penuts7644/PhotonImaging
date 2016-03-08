@@ -18,6 +18,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
+import ij.gui.ImageRoi;
 import ij.gui.Roi;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.MaximumFinder;
@@ -97,7 +98,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         for (int i = 0; i < rawCoordinates[0].length; i++){
             float x = rawCoordinates[0][i];
             float y = rawCoordinates[1][i];
-            this.outlinePhoton(x, y);
+            this.outlinePhoton(x, y, ip);
         }
         
         this.addToPhotonCount(rawCoordinates);
@@ -144,18 +145,26 @@ public class Photon_Image_Processor implements PlugInFilter {
         return coordinates;
     }
 
-    private void outlinePhoton(float xCor, float yCor) {
+    private void outlinePhoton(float xCor, float yCor, ImageProcessor processor) {
         int halfPOS = this.photonOutlineSize / 2;
-        Roi photonOutline = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
-        //System.out.println("x = " + photonOutline.getXBase() + ": y = " + photonOutline.getYBase());
-    }
-    
-    private void addToPhotonCount(float[][] coordinates) {
-        for (int i = 0; i < coordinates[0].length; i++){
-            int x = (int) coordinates[0][i];
-            int y = (int) coordinates[1][i];
-            this.photonCountMatrix[x][y] ++;
-        }
+        Roi photonRoi = new Roi((xCor - halfPOS), (yCor - halfPOS), this.photonOutlineSize, this.photonOutlineSize);
+        
+      
+        // kopie maken werkt, maar je kunt ook aan het eind gewoon resetRoi doen en dan crop
+        //ImageProcessor processorCopy = (ImageProcessor) processor.clone();
+        
+
+        processor.setRoi(photonRoi);
+        ImagePlus photonImagePlus = new ImagePlus("single photon", processor.crop());
+
+            
+        photonImagePlus.close();
+        //photonImagePlus.show();
+            
+        // reset the processor back to normal
+        processor.resetRoi();
+        processor.crop();
+        
     }
 
     private boolean showDialog() {
