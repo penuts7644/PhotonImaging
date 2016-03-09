@@ -8,7 +8,7 @@
     <parent>
         <groupId>net.imagej</groupId>
         <artifactId>pom-imagej</artifactId>
-        <version>14.4.1</version>
+        <version>14.7.1</version>
         <relativePath />
     </parent>
 
@@ -34,7 +34,7 @@
         <developer>
             <id>ls</id>
             <name>Lonneke Scheffer</name>
-            <email>lonsch96@hotmail.com</email>
+            <email>lonsch96@live.nl</email>
             <url>http://www.bioinf.nl/~lscheffer</url>
             <roles>
                     <role>architect</role>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.50e</version>
+            <version>1.50g</version>
         </dependency>
     </dependencies>
 </project>
