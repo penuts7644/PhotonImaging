@@ -144,7 +144,7 @@ public class Photon_Image_Processor implements PlugInFilter {
     }
 
     /**
-     * Preprocess the images. For instance: adjusting brightness/contrast/noise calibration
+     * Preprocess the images. For instance: despeckling the images to prevent false positives
      *
      */
     private void preprocessImages(ImageProcessor ip) {
@@ -175,6 +175,14 @@ public class Photon_Image_Processor implements PlugInFilter {
         return coordinates;
     }
 
+    /**
+     * Calculate the exact positions of the given coordinates.
+     * 
+     * @param xCor original x coordinate
+     * @param yCor original y coordinate
+     * @param ip the imageprocessor
+     * @return the new calculated coordinates
+     */
     private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
         int[] foundCoordinates = new int[2];
         int leftBoundary = (int)xCor - this.halfPhotonOutlineSize;
@@ -236,45 +244,59 @@ public class Photon_Image_Processor implements PlugInFilter {
         }
         
         // Coordinates are different from the original coordinates:
-        if (results.getCounter() == 0){
-            // 1. if there were no coordinates found, return the original coordinates
+        switch (results.getCounter()) {
+            case 0:
+                // 1. if there were no coordinates found, return the original coordinates
 //            System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
-            return foundCoordinates;
-        } else if(results.getCounter() == 1){
-            // 2. if there was one coordinatepair found, return this pair
+                return foundCoordinates;
+            case 1:
+                // 2. if there was one coordinatepair found, return this pair
 //            System.out.println("image " + this.imageCounter + " photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", now set to: " + foundCoordinates[0] + ", " + foundCoordinates[1] + " following: "+ (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
-            foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
-            foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
-            return foundCoordinates;
-        } else {
-            // 3. there were multiple coordinatepairs found, return the one closest to the center,
-            // this is most likely to be the correct one
-            // set the first results as the 'new coordinates'
-            foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
-            foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
-            // calculate the distance
-            float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
-            // compare with all others
-            for (int i = 1; i < results.getCounter(); i++){
-                float newDistance = this.getEuclidianDistance(xCor, yCor, 
-                                              (leftBoundary + (int)results.getValue("X", i)), 
-                                              (topBoundary + (int)results.getValue("Y", i)));
-                if (newDistance < distance){
-                    foundCoordinates[0] = leftBoundary + (int)results.getValue("X", i);
-                    foundCoordinates[1] = topBoundary + (int)results.getValue("Y", i);
-                    distance = newDistance;
+                foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
+                foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
+                return foundCoordinates;
+            default:
+                // 3. there were multiple coordinatepairs found, return the one closest to the center,
+                // this is most likely to be the correct one
+                // set the first results as the 'new coordinates'
+                foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
+                foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
+                // calculate the distance
+                float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
+                // compare with all others
+                for (int i = 1; i < results.getCounter(); i++){
+                    float newDistance = this.getEuclidianDistance(xCor, yCor,
+                            (leftBoundary + (int)results.getValue("X", i)),
+                            (topBoundary + (int)results.getValue("Y", i)));
+                    if (newDistance < distance){
+                        foundCoordinates[0] = leftBoundary + (int)results.getValue("X", i);
+                        foundCoordinates[1] = topBoundary + (int)results.getValue("Y", i);
+                        distance = newDistance;
+                    }
                 }
-            }
-            return foundCoordinates;
+                return foundCoordinates;
         }
     }
     
-    private float getEuclidianDistance(float originalX, float originalY, float newX,  float newY){
-        return (float) Math.sqrt((originalX - newX) * (originalX - newX) 
-                               + (originalY - newY) * (originalY - newY));
+    /**
+     * Calculate the euclidian distance between two points in two-dimensional space.
+     * 
+     * @param firstX x coordinate of the first point
+     * @param firstY y coordinate of the first point
+     * @param secondX x coordinate of the second point
+     * @param secondY y coordinate of the second point
+     * @return euclidian distance between the two points
+     */
+    private float getEuclidianDistance(float firstX, float firstY, float secondX,  float secondY){
+        return (float) Math.sqrt((firstX - secondX) * (firstX - secondX) 
+                               + (firstY - secondY) * (firstY - secondY));
     }
  
-    
+    /**
+     * Add the coordinate pairs to the photon count matrix.
+     * 
+     * @param coordinates 
+     */
     private void addToPhotonCount(float[][] coordinates){
         for (int i = 0; i < coordinates[0].length; i++){
             int x = (int) coordinates[0][i];
@@ -328,7 +350,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
-        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         ImagePlus image = IJ.getImage();
 
