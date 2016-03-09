@@ -92,21 +92,46 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        this.width = ip.getWidth();
 //        this.height = ip.getHeight();
         this.imageCounter++;
-        float[][] rawCoordinates;
+        float[][] coordinates;
+        String sameX;
+        String sameY;
         
         this.preprocessImages(ip);
         
         MaximumFinder maxFind = new MaximumFinder();
-        rawCoordinates = this.findPhotons(ip, maxFind);
-        System.out.println("\n************\nimage" + this.imageCounter + ", " + rawCoordinates[0].length + " photons found\n************");
-        for (int i = 0; i < rawCoordinates[0].length; i++){
-            float x = rawCoordinates[0][i];
-            float y = rawCoordinates[1][i];
-//            this.findExactCoordinates(x, y, ip);
-            System.out.println("X: " + x + " Y:" + y);
-        }
+        coordinates = this.findPhotons(ip, maxFind);
+        System.out.println("+---------------------------------------------------+");
+        System.out.println("|            Image" + this.imageCounter + ", " + coordinates[0].length + " photons found.             |");
+        System.out.println("+---------------------------------------------------+");
+        System.out.println("| Original x | Adjusted x | Original y | Adjusted y |");
         
-        this.addToPhotonCount(rawCoordinates);
+        
+        for (int i = 0; i < coordinates[0].length; i++){
+            float x = coordinates[0][i];
+            float y = coordinates[1][i];
+            int[] newCoordinates = this.findExactCoordinates(x, y, ip);
+            
+            coordinates[0][i] = newCoordinates[0];
+            coordinates[1][i] = newCoordinates[1];
+            
+            if (x == newCoordinates[0]){
+                sameX = " ";
+            }else {
+                sameX = "*";
+            }
+            
+            if (y == newCoordinates[1]){
+                sameY = " ";
+            }else {
+                sameY = "*";
+            }
+            
+            System.out.println("+------------+------------+------------+------------+");
+            System.out.printf( "| %10s | %1s%9s | %10s | %1s%9s |%n", (int)x, sameX, newCoordinates[0], (int)y, sameY, newCoordinates[1]);
+        }
+        System.out.println("+---------------------------------------------------+\n");
+        
+        this.addToPhotonCount(coordinates);
   
 // test print stukje van het count foton grid
 //        for (int i=1000; i < 1100; i++){
@@ -162,6 +187,7 @@ public class Photon_Image_Processor implements PlugInFilter {
                                     this.photonOutlineSize,
                                     this.photonOutlineSize);
         
+        // If the roi is outside the frame (left and top), set the boundaries to 0
         if (leftBoundary < 0){
             leftBoundary = 0;
         }
@@ -169,36 +195,42 @@ public class Photon_Image_Processor implements PlugInFilter {
             topBoundary = 0;
         }
         
+        // set the ROI
         ip.setRoi(photonOutline);
         ImagePlus photonImp = new ImagePlus("single photon " + this.photonCounter, ip.crop());
-        ImageProcessor photonIp = photonImp.getProcessor();
+        photonImp.close();
         
+        // reset the ROI
         ip.resetRoi();
         ip.crop();
         
-        photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
-        photonImp.show();
-        photonImp.updateImage();
-        //photonImp.updateAndDraw();
+//        photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
+//        photonImp.show();
+//        photonImp.updateImage();
+//        photonImp.updateAndDraw();
+//        photonImp.getPixel(0, 0);
         
+        // perform autothresholding
+        ImageProcessor photonIp = photonImp.getProcessor();
+        photonIp.autoThreshold();
         
+        // find the new midpoints
         MaximumFinder m = new MaximumFinder();
         m.findMaxima(photonIp, 10, MaximumFinder.LIST, true);
         
+        // get the results and close the window
         ResultsTable results = ResultsTable.getResultsTable();
         ResultsTable.getResultsWindow().close(false);
         
-        // by default the found coordinates are set to the original coordinates
+        // by default the 'new' coordinates are set to the original coordinates
         foundCoordinates[0] = (int)xCor;
         foundCoordinates[1] = (int)yCor;
-        
         
         // If one of the found coordinatepairs is just the original coordinates,
         // then they were right in the beginning, return them
         for (int i = 0; i < results.getCounter(); i++){
             if (results.getValue("X", i) == this.halfPhotonOutlineSize &&
                 results.getValue("Y", i) == this.halfPhotonOutlineSize){
-                photonImp.close();
                 return foundCoordinates;
             }
         }
@@ -206,23 +238,23 @@ public class Photon_Image_Processor implements PlugInFilter {
         // Coordinates are different from the original coordinates:
         if (results.getCounter() == 0){
             // 1. if there were no coordinates found, return the original coordinates
-            System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
+//            System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
             return foundCoordinates;
         } else if(results.getCounter() == 1){
             // 2. if there was one coordinatepair found, return this pair
+//            System.out.println("image " + this.imageCounter + " photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", now set to: " + foundCoordinates[0] + ", " + foundCoordinates[1] + " following: "+ (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
             foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
             foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
-            System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", " + (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
+            return foundCoordinates;
         } else {
             // 3. there were multiple coordinatepairs found, return the one closest to the center,
             // this is most likely to be the correct one
-            
             // set the first results as the 'new coordinates'
             foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
             foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
             // calculate the distance
             float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
-            
+            // compare with all others
             for (int i = 1; i < results.getCounter(); i++){
                 float newDistance = this.getEuclidianDistance(xCor, yCor, 
                                               (leftBoundary + (int)results.getValue("X", i)), 
@@ -231,15 +263,13 @@ public class Photon_Image_Processor implements PlugInFilter {
                     foundCoordinates[0] = leftBoundary + (int)results.getValue("X", i);
                     foundCoordinates[1] = topBoundary + (int)results.getValue("Y", i);
                     distance = newDistance;
-                }     
+                }
             }
-            System.out.println(this.photonCounter + ": multiple found");
+            return foundCoordinates;
         }
-        
-        return foundCoordinates;
     }
     
-    private float getEuclidianDistance(float originalX, float newX, float originalY, float newY){
+    private float getEuclidianDistance(float originalX, float originalY, float newX,  float newY){
         return (float) Math.sqrt((originalX - newX) * (originalX - newX) 
                                + (originalY - newY) * (originalY - newY));
     }
@@ -298,7 +328,8 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
-//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path)
