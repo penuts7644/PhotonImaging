@@ -98,8 +98,10 @@ public class Photon_Image_Processor implements PlugInFilter {
         
         this.preprocessImages(ip);
         
+        // create one maximumfinder, and find the photon coordinates
         MaximumFinder maxFind = new MaximumFinder();
         coordinates = this.findPhotons(ip, maxFind);
+        
         System.out.println("+---------------------------------------------------+");
         System.out.println("|            Image" + this.imageCounter + ", " + coordinates[0].length + " photons found.             |");
         System.out.println("+---------------------------------------------------+");
@@ -131,6 +133,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         }
         System.out.println("+---------------------------------------------------+\n");
         
+        // Add the found photon coordinates to the total count grid
         this.addToPhotonCount(coordinates);
   
 // test print stukje van het count foton grid
@@ -190,12 +193,13 @@ public class Photon_Image_Processor implements PlugInFilter {
         
         this.photonCounter ++;
         
+        // Create a new ROI (region of interest, or selected space)
         Roi photonOutline = new Roi(leftBoundary,
                                     topBoundary,
                                     this.photonOutlineSize,
                                     this.photonOutlineSize);
         
-        // If the roi is outside the frame (left and top), set the boundaries to 0
+        // If the ROI is outside the frame (left and top), set the boundaries to 0
         if (leftBoundary < 0){
             leftBoundary = 0;
         }
@@ -212,11 +216,11 @@ public class Photon_Image_Processor implements PlugInFilter {
         ip.resetRoi();
         ip.crop();
         
+//        old autothresholding method: (does not work)
 //        photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
 //        photonImp.show();
 //        photonImp.updateImage();
 //        photonImp.updateAndDraw();
-//        photonImp.getPixel(0, 0);
         
         // perform autothresholding
         ImageProcessor photonIp = photonImp.getProcessor();
@@ -234,8 +238,8 @@ public class Photon_Image_Processor implements PlugInFilter {
         foundCoordinates[0] = (int)xCor;
         foundCoordinates[1] = (int)yCor;
         
-        // If one of the found coordinatepairs is just the original coordinates,
-        // then they were right in the beginning, return them
+        // If one of the found coordinatepairs is contains the original coordinates,
+        // then they were right in the beginning, return the original coordinates
         for (int i = 0; i < results.getCounter(); i++){
             if (results.getValue("X", i) == this.halfPhotonOutlineSize &&
                 results.getValue("Y", i) == this.halfPhotonOutlineSize){
@@ -243,7 +247,7 @@ public class Photon_Image_Processor implements PlugInFilter {
             }
         }
         
-        // Coordinates are different from the original coordinates:
+        // All resulting coordinates are different from the original coordinates:
         switch (results.getCounter()) {
             case 0:
                 // 1. if there were no coordinates found, return the original coordinates
@@ -261,13 +265,14 @@ public class Photon_Image_Processor implements PlugInFilter {
                 // set the first results as the 'new coordinates'
                 foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
                 foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
-                // calculate the distance
+                // calculate the distance of the first result to the center
                 float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
-                // compare with all others
+                // compare with all other results
                 for (int i = 1; i < results.getCounter(); i++){
                     float newDistance = this.getEuclidianDistance(xCor, yCor,
                             (leftBoundary + (int)results.getValue("X", i)),
                             (topBoundary + (int)results.getValue("Y", i)));
+                    // if the newly found result is closer to the center, set it as the result
                     if (newDistance < distance){
                         foundCoordinates[0] = leftBoundary + (int)results.getValue("X", i);
                         foundCoordinates[1] = topBoundary + (int)results.getValue("Y", i);
@@ -305,6 +310,11 @@ public class Photon_Image_Processor implements PlugInFilter {
         }
     }
 
+    /**
+     * This method is not used yet.
+     * 
+     * @return 
+     */
     private boolean showDialog() {
         GenericDialog gd = new GenericDialog("Photon Image Processor");
 
@@ -354,8 +364,10 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         ImagePlus image = IJ.getImage();
 
-        // Only if you use new ImagePlus(path)
+        // Only if you use new ImagePlus(path) to open the file
         //image.show();
+        
+        
         // run the plugin
         IJ.runPlugIn(clazz.getName(), "");
     }
