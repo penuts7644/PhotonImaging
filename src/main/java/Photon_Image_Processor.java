@@ -18,14 +18,15 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
+import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import ij.gui.Wand;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.RankFilters;
 import ij.process.AutoThresholder;
 import ij.process.ImageProcessor;
-
 
 /**
  * Photon_Image_Processor
@@ -38,15 +39,14 @@ public class Photon_Image_Processor implements PlugInFilter {
 
     protected ImagePlus image;
     private int[][] photonCountMatrix;
-    
 
     // image property members
 //    private int width;
 //    private int height;
     // plugin parameters
     private final int photonOutlineSize = 20;
-    private final int halfPhotonOutlineSize = this.photonOutlineSize/2;
-    
+    private final int halfPhotonOutlineSize = this.photonOutlineSize / 2;
+
     private int photonCounter = 0;
     private int imageCounter = 0;
 
@@ -70,10 +70,9 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        if (!dialogCorrect) {
 //            return PlugInFilter.DONE;
 //        }
-        
         this.image = imp;
         this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
-        
+
         return PlugInFilter.DOES_STACKS | PlugInFilter.DOES_8G | PlugInFilter.DOES_16 | PlugInFilter.DOES_32;
     }
 
@@ -93,21 +92,26 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        this.height = ip.getHeight();
         this.imageCounter++;
         float[][] rawCoordinates;
-        
+
         this.preprocessImages(ip);
-        
+
         MaximumFinder maxFind = new MaximumFinder();
         rawCoordinates = this.findPhotons(ip, maxFind);
+        int avgThreshold = this.getAverageThreshold(ip);
+        System.out.println("\navgThreshold: " + avgThreshold);
         System.out.println("\n************\nimage" + this.imageCounter + ", " + rawCoordinates[0].length + " photons found\n************");
-        for (int i = 0; i < rawCoordinates[0].length; i++){
+        for (int i = 0; i < rawCoordinates[0].length; i++) {
             float x = rawCoordinates[0][i];
             float y = rawCoordinates[1][i];
 //            this.findExactCoordinates(x, y, ip);
+            PolygonRoi t2 = this.getRoiSelection(x, y, avgThreshold, ip);
             System.out.println("X: " + x + " Y:" + y);
+            this.image.setRoi(t2, true);
+            // break;
         }
-        
+
         this.addToPhotonCount(rawCoordinates);
-  
+
 // test print stukje van het count foton grid
 //        for (int i=1000; i < 1100; i++){
 //            for (int j=1000; j < 1100; j++){
@@ -115,7 +119,6 @@ public class Photon_Image_Processor implements PlugInFilter {
 //            }
 //            System.out.println("");
 //        }
-
     }
 
     /**
@@ -137,7 +140,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         // Find the maxima using MaximumFinder
         maxFind.findMaxima(ip, 30.0, MaximumFinder.LIST, false);
-        
+
         // Retrieve the results
         ResultsTable results = ResultsTable.getResultsTable();
         coordinates = new float[2][results.size()];
@@ -150,106 +153,116 @@ public class Photon_Image_Processor implements PlugInFilter {
         return coordinates;
     }
 
+    private int getAverageThreshold(ImageProcessor ip) {
+        return ip.getAutoThreshold();
+    }
+
+    private PolygonRoi getRoiSelection(float xCor, float yCor, int threshold, ImageProcessor ip) {
+        Wand wd = new Wand(ip);
+        wd.autoOutline((int) xCor, (int) yCor, threshold, 255, 1);
+        System.out.println("N: " + wd.npoints + " X: " + wd.xpoints.length + " Y: " + wd.ypoints.length);
+        PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, 3);
+
+        return pr;
+    }
+
     private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
         int[] foundCoordinates = new int[2];
-        int leftBoundary = (int)xCor - this.halfPhotonOutlineSize;
-        int topBoundary = (int)yCor - this.halfPhotonOutlineSize;
-        
-        this.photonCounter ++;
-        
+        int leftBoundary = (int) xCor - this.halfPhotonOutlineSize;
+        int topBoundary = (int) yCor - this.halfPhotonOutlineSize;
+
+        this.photonCounter++;
+
         Roi photonOutline = new Roi(leftBoundary,
-                                    topBoundary,
-                                    this.photonOutlineSize,
-                                    this.photonOutlineSize);
-        
-        if (leftBoundary < 0){
+                topBoundary,
+                this.photonOutlineSize,
+                this.photonOutlineSize);
+
+        if (leftBoundary < 0) {
             leftBoundary = 0;
         }
-        if (topBoundary < 0){
+        if (topBoundary < 0) {
             topBoundary = 0;
         }
-        
+
         ip.setRoi(photonOutline);
         ImagePlus photonImp = new ImagePlus("single photon " + this.photonCounter, ip.crop());
         ImageProcessor photonIp = photonImp.getProcessor();
-        
+
         ip.resetRoi();
         ip.crop();
-        
+
         photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
         photonImp.show();
         photonImp.updateImage();
         //photonImp.updateAndDraw();
-        
-        
+
         MaximumFinder m = new MaximumFinder();
         m.findMaxima(photonIp, 10, MaximumFinder.LIST, true);
-        
+
         ResultsTable results = ResultsTable.getResultsTable();
         ResultsTable.getResultsWindow().close(false);
-        
+
         // by default the found coordinates are set to the original coordinates
-        foundCoordinates[0] = (int)xCor;
-        foundCoordinates[1] = (int)yCor;
-        
-        
+        foundCoordinates[0] = (int) xCor;
+        foundCoordinates[1] = (int) yCor;
+
         // If one of the found coordinatepairs is just the original coordinates,
         // then they were right in the beginning, return them
-        for (int i = 0; i < results.getCounter(); i++){
-            if (results.getValue("X", i) == this.halfPhotonOutlineSize &&
-                results.getValue("Y", i) == this.halfPhotonOutlineSize){
+        for (int i = 0; i < results.getCounter(); i++) {
+            if (results.getValue("X", i) == this.halfPhotonOutlineSize
+                    && results.getValue("Y", i) == this.halfPhotonOutlineSize) {
                 photonImp.close();
                 return foundCoordinates;
             }
         }
-        
+
         // Coordinates are different from the original coordinates:
-        if (results.getCounter() == 0){
+        if (results.getCounter() == 0) {
             // 1. if there were no coordinates found, return the original coordinates
             System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
             return foundCoordinates;
-        } else if(results.getCounter() == 1){
+        } else if (results.getCounter() == 1) {
             // 2. if there was one coordinatepair found, return this pair
-            foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
-            foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
-            System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", " + (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
+            foundCoordinates[0] = leftBoundary + (int) results.getValue("X", 0);
+            foundCoordinates[1] = topBoundary + (int) results.getValue("Y", 0);
+            System.out.println("image " + this.imageCounter + "photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", " + (int) results.getValue("X", 0) + ", " + (int) results.getValue("Y", 0));
         } else {
             // 3. there were multiple coordinatepairs found, return the one closest to the center,
             // this is most likely to be the correct one
-            
+
             // set the first results as the 'new coordinates'
-            foundCoordinates[0] = leftBoundary + (int)results.getValue("X", 0);
-            foundCoordinates[1] = topBoundary + (int)results.getValue("Y", 0);
+            foundCoordinates[0] = leftBoundary + (int) results.getValue("X", 0);
+            foundCoordinates[1] = topBoundary + (int) results.getValue("Y", 0);
             // calculate the distance
             float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
-            
-            for (int i = 1; i < results.getCounter(); i++){
-                float newDistance = this.getEuclidianDistance(xCor, yCor, 
-                                              (leftBoundary + (int)results.getValue("X", i)), 
-                                              (topBoundary + (int)results.getValue("Y", i)));
-                if (newDistance < distance){
-                    foundCoordinates[0] = leftBoundary + (int)results.getValue("X", i);
-                    foundCoordinates[1] = topBoundary + (int)results.getValue("Y", i);
+
+            for (int i = 1; i < results.getCounter(); i++) {
+                float newDistance = this.getEuclidianDistance(xCor, yCor,
+                        (leftBoundary + (int) results.getValue("X", i)),
+                        (topBoundary + (int) results.getValue("Y", i)));
+                if (newDistance < distance) {
+                    foundCoordinates[0] = leftBoundary + (int) results.getValue("X", i);
+                    foundCoordinates[1] = topBoundary + (int) results.getValue("Y", i);
                     distance = newDistance;
-                }     
+                }
             }
             System.out.println(this.photonCounter + ": multiple found");
         }
-        
+
         return foundCoordinates;
     }
-    
-    private float getEuclidianDistance(float originalX, float newX, float originalY, float newY){
-        return (float) Math.sqrt((originalX - newX) * (originalX - newX) 
-                               + (originalY - newY) * (originalY - newY));
+
+    private float getEuclidianDistance(float originalX, float newX, float originalY, float newY) {
+        return (float) Math.sqrt((originalX - newX) * (originalX - newX)
+                + (originalY - newY) * (originalY - newY));
     }
- 
-    
-    private void addToPhotonCount(float[][] coordinates){
-        for (int i = 0; i < coordinates[0].length; i++){
+
+    private void addToPhotonCount(float[][] coordinates) {
+        for (int i = 0; i < coordinates[0].length; i++) {
             int x = (int) coordinates[0][i];
             int y = (int) coordinates[1][i];
-            this.photonCountMatrix[x][y] ++;
+            this.photonCountMatrix[x][y]++;
         }
     }
 
@@ -266,7 +279,6 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         // get entered values
         //this.photonOutlineSize = (int) gd.getNextNumber();
-
         return true;
     }
 
