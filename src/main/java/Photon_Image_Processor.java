@@ -139,8 +139,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 //            coordinates.ypoints[i] = newCoordinates[1];
             // Add the adjusted coordinates to the photon count matrix
             this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
-            
-            
+
         }
         // Add the found photon coordinates to the total count grid
 //        this.addToPhotonCount(coordinates);
@@ -318,6 +317,8 @@ public class Photon_Image_Processor implements PlugInFilter {
      */
     private void createOutputImage() {
 
+        IJ.showStatus("Generating image...");
+
         // Create new ByteProcessor for output image with matrix data and it's width and height.
         ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
         bp.setIntArray(this.photonCountMatrix);
@@ -395,10 +396,10 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
-        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
