@@ -117,16 +117,18 @@ public class Photon_Image_Processor implements PlugInFilter {
      */
     @Override
     public void run(ImageProcessor ip) {
-
         Polygon coordinates;
 
+        IJ.showStatus("Preprocessing...");
         this.preprocessImage(ip);
 
+        IJ.showStatus("Finding photons...");
         // find the photon coordinates
         coordinates = this.findPhotons(ip);
 
         // int avgThreshold = this.getAverageThreshold(ip);
         // loop through all found coordinates
+        IJ.showStatus("Calculating exact coordinates...");
         for (int i = 0; i < coordinates.npoints; i++) {
             int x = coordinates.xpoints[i];
             int y = coordinates.ypoints[i];
@@ -137,6 +139,8 @@ public class Photon_Image_Processor implements PlugInFilter {
 //            coordinates.ypoints[i] = newCoordinates[1];
             // Add the adjusted coordinates to the photon count matrix
             this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
+            
+            
         }
         // Add the found photon coordinates to the total count grid
 //        this.addToPhotonCount(coordinates);
@@ -391,10 +395,10 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
-//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
