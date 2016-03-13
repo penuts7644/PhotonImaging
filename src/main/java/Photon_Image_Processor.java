@@ -26,8 +26,8 @@ import ij.gui.Wand;
 //import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.RankFilters;
+import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 import java.awt.Polygon;
 
 /**
@@ -57,7 +57,7 @@ public class Photon_Image_Processor implements PlugInFilter {
      * here. Setup method needs to be overridden.
      *
      * @see ij.plugin.filter.PlugInFilter#setup(java.lang.String, ij.ImagePlus)
-     * @return None if help shown, else plugin does gray 16 stacks and parallel.
+     * @return None if help shown, else plugin does gray 16-bit stacks and parallel.
      */
     @Override
     public int setup(String argument, ImagePlus imp) {
@@ -99,7 +99,6 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        this.photonCountMatrix[4][7] = 1;
 //        this.photonCountMatrix[4][8] = 1;
 //        this.photonCountMatrix[4][9] = 1;
-
         return PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
                 | PlugInFilter.PARALLELIZE_STACKS
@@ -127,17 +126,15 @@ public class Photon_Image_Processor implements PlugInFilter {
         coordinates = this.findPhotons(ip);
 
         // int avgThreshold = this.getAverageThreshold(ip);
-        
         // loop through all found coordinates
         for (int i = 0; i < coordinates.npoints; i++) {
             int x = coordinates.xpoints[i];
             int y = coordinates.ypoints[i];
             int[] newCoordinates = this.findExactCoordinates(x, y, ip);
 
-//            // PolygonRoi polygonSelection = this.getRoiSelection(x, y, avgThreshold, ip);
+//            PolygonRoi polygonSelection = this.getRoiSelection(x, y, avgThreshold, ip);
 //            coordinates.xpoints[i] = newCoordinates[0];
 //            coordinates.ypoints[i] = newCoordinates[1];
-            
             // Add the adjusted coordinates to the photon count matrix
             this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
         }
@@ -164,11 +161,11 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         // Find the maxima using MaximumFinder
         Polygon maxima = this.maxFind.getMaxima(ip, 30.0, false);
-        
+
         coordinates = new int[2][maxima.npoints];
         coordinates[0] = maxima.xpoints; // x coordinates
         coordinates[1] = maxima.ypoints; // y coordinates
-        
+
         return maxima;
     }
 
@@ -235,8 +232,6 @@ public class Photon_Image_Processor implements PlugInFilter {
         // find the new midpoints
         SilentMaximumFinder m = new SilentMaximumFinder();
         Polygon photonMaxima = m.getMaxima(photonIp, 10, true);
-        
-
 
         // by default the 'new' coordinates are set to the original coordinates
         foundCoordinates[0] = (int) xCor;
@@ -246,7 +241,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         // then they were right in the beginning, return the original coordinates
         for (int i = 0; i < photonMaxima.npoints; i++) {
             if (photonMaxima.xpoints[i] == this.halfPhotonOutlineSize
-                    && photonMaxima.ypoints[i]  == this.halfPhotonOutlineSize) {
+                    && photonMaxima.ypoints[i] == this.halfPhotonOutlineSize) {
                 return foundCoordinates;
             }
         }
@@ -318,11 +313,28 @@ public class Photon_Image_Processor implements PlugInFilter {
      * This method generates and displays the final image from the photonCountMatrix.
      */
     private void createOutputImage() {
-        ShortProcessor sp = new ShortProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
-        sp.setIntArray(this.photonCountMatrix);
 
-        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", sp.createImage());
+        // Create new ByteProcessor for output image with matrix data and it's width and height.
+        ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
+        bp.setIntArray(this.photonCountMatrix);
 
+        // Search for largest count value in matrix.
+        int maxMatrixCount = 0;
+        for (int[] photonCountMatrix1 : this.photonCountMatrix) {
+            for (int photonCountMatrix2 : photonCountMatrix1) {
+                if (photonCountMatrix2 > maxMatrixCount) {
+                    maxMatrixCount = photonCountMatrix2;
+                }
+            }
+        }
+
+        // Use min and max values from matrix for for 0-255 grayscale pixel mapping.
+        bp.setMinAndMax(0, maxMatrixCount);
+
+        // Create new output image with title.
+        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.createImage());
+
+        // Make new image window in ImageJ and set the window visible.
         ImageWindow outputWindow = new ImageWindow(outputImage);
         outputWindow.setVisible(true);
     }
@@ -379,11 +391,10 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
-        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
-        //IJ.run("Open...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData/image0000.TIF");
+        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
@@ -392,7 +403,4 @@ public class Photon_Image_Processor implements PlugInFilter {
         IJ.runPlugIn(clazz.getName(), "");
     }
 
-    
-    
-    
 }
