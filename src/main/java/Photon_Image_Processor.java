@@ -22,8 +22,8 @@ import ij.gui.ImageWindow;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
 import ij.gui.Wand;
-import ij.measure.ResultsTable;
-import ij.plugin.filter.MaximumFinder;
+//import ij.measure.ResultsTable;
+//import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.RankFilters;
 import ij.process.ImageProcessor;
@@ -47,7 +47,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 
     private int photonCounter = 0;
     
-    private MaximumFinder maxFind;
+    private SilentMaximumFinder maxFind;
     
 
     /**
@@ -75,7 +75,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        }
         this.image = imp;
         this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
-        this.maxFind = new MaximumFinder();
+        this.maxFind = new SilentMaximumFinder();
         
 //        this.photonCountMatrix = new int[10][10];
 //        this.photonCountMatrix[0][4] = 1;
@@ -233,7 +233,7 @@ public class Photon_Image_Processor implements PlugInFilter {
         photonIp.autoThreshold();
 
         // find the new midpoints
-        MaximumFinder m = new MaximumFinder();
+        SilentMaximumFinder m = new SilentMaximumFinder();
         Polygon photonMaxima = m.getMaxima(photonIp, 10, true);
         
 
