@@ -22,9 +22,11 @@ import ij.gui.ImageWindow;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
 import ij.gui.Wand;
+import ij.plugin.filter.ExtendedPlugInFilter;
 //import ij.measure.ResultsTable;
 //import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
@@ -37,7 +39,7 @@ import java.awt.Polygon;
  *
  * @author Lonneke Scheffer & Wout van Helvoirt
  */
-public class Photon_Image_Processor implements PlugInFilter {
+public class Photon_Image_Processor implements ExtendedPlugInFilter {
 
     protected ImagePlus image;
     private int[][] photonCountMatrix;
@@ -48,6 +50,8 @@ public class Photon_Image_Processor implements PlugInFilter {
     private int photonCounter = 0;
     
     private SilentMaximumFinder maxFind;
+    
+    private int nPasses = 0;  
     
 
     /**
@@ -76,29 +80,8 @@ public class Photon_Image_Processor implements PlugInFilter {
         this.image = imp;
         this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
         this.maxFind = new SilentMaximumFinder();
-        
-//        this.photonCountMatrix = new int[10][10];
-//        this.photonCountMatrix[0][4] = 1;
-//        this.photonCountMatrix[1][4] = 1;
-//        this.photonCountMatrix[2][4] = 1;
-//        this.photonCountMatrix[3][4] = 1;
-//        this.photonCountMatrix[5][4] = 1;
-//        this.photonCountMatrix[6][4] = 1;
-//        this.photonCountMatrix[7][4] = 1;
-//        this.photonCountMatrix[8][4] = 1;
-//        this.photonCountMatrix[9][4] = 1;
-//
-//        this.photonCountMatrix[4][4] = 10;
-//
-//        this.photonCountMatrix[4][0] = 1;
-//        this.photonCountMatrix[4][1] = 1;
-//        this.photonCountMatrix[4][2] = 1;
-//        this.photonCountMatrix[4][3] = 1;
-//        this.photonCountMatrix[4][5] = 1;
-//        this.photonCountMatrix[4][6] = 1;
-//        this.photonCountMatrix[4][7] = 1;
-//        this.photonCountMatrix[4][8] = 1;
-//        this.photonCountMatrix[4][9] = 1;
+        this.setNPasses(this.image.getStackSize());
+
         return PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
                 | PlugInFilter.PARALLELIZE_STACKS
@@ -119,26 +102,21 @@ public class Photon_Image_Processor implements PlugInFilter {
     public void run(ImageProcessor ip) {
         Polygon coordinates;
 
-        IJ.showStatus("Preprocessing...");
+        // preprocess the current image
         this.preprocessImage(ip);
 
-        IJ.showStatus("Finding photons...");
         // find the photon coordinates
         coordinates = this.findPhotons(ip);
 
-        // int avgThreshold = this.getAverageThreshold(ip);
         // loop through all found coordinates
-        IJ.showStatus("Calculating exact coordinates...");
         for (int i = 0; i < coordinates.npoints; i++) {
             int x = coordinates.xpoints[i];
             int y = coordinates.ypoints[i];
-            int[] newCoordinates = this.findExactCoordinates(x, y, ip);
+            //int[] newCoordinates = this.findExactCoordinates(x, y, ip);
+            // this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
 
-//            PolygonRoi polygonSelection = this.getRoiSelection(x, y, avgThreshold, ip);
-//            coordinates.xpoints[i] = newCoordinates[0];
-//            coordinates.ypoints[i] = newCoordinates[1];
             // Add the adjusted coordinates to the photon count matrix
-            this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
+            this.photonCountMatrix[x][y]++;
 
         }
         // Add the found photon coordinates to the total count grid
@@ -151,6 +129,7 @@ public class Photon_Image_Processor implements PlugInFilter {
      */
     private void preprocessImage(ImageProcessor ip) {
         // Perform 'despeckle' using RankFilters
+        IJ.showStatus("Preprocessing...");
         RankFilters r = new RankFilters();
         r.rank(ip, 1, RankFilters.MEDIAN);
     }
@@ -160,10 +139,11 @@ public class Photon_Image_Processor implements PlugInFilter {
      *
      */
     private Polygon findPhotons(ImageProcessor ip) {
+        IJ.showStatus("Finding photons...");
         int[][] coordinates;
 
         // Find the maxima using MaximumFinder
-        Polygon maxima = this.maxFind.getMaxima(ip, 30.0, false);
+        Polygon maxima = this.maxFind.getMaxima(ip, 22000, false);
 
         coordinates = new int[2][maxima.npoints];
         coordinates[0] = maxima.xpoints; // x coordinates
@@ -172,18 +152,18 @@ public class Photon_Image_Processor implements PlugInFilter {
         return maxima;
     }
 
-    private int getAverageThreshold(ImageProcessor ip) {
-        return ip.getAutoThreshold();
-    }
-
-    private PolygonRoi getRoiSelection(float xCor, float yCor, int threshold, ImageProcessor ip) {
-        Wand wd = new Wand(ip);
-        wd.autoOutline((int) xCor, (int) yCor, threshold, 255, 1);
-        System.out.println("N: " + wd.npoints + " X: " + wd.xpoints.length + " Y: " + wd.ypoints.length);
-        PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, 3);
-
-        return pr;
-    }
+//    private int getAverageThreshold(ImageProcessor ip) {
+//        return ip.getAutoThreshold();
+//    }
+//
+//    private PolygonRoi getRoiSelection(float xCor, float yCor, int threshold, ImageProcessor ip) {
+//        Wand wd = new Wand(ip);
+//        wd.autoOutline((int) xCor, (int) yCor, threshold, 255, 1);
+//        System.out.println("N: " + wd.npoints + " X: " + wd.xpoints.length + " Y: " + wd.ypoints.length);
+//        PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, 3);
+//
+//        return pr;
+//    }
 
     /**
      * Calculate the exact positions of the given coordinates.
@@ -194,6 +174,7 @@ public class Photon_Image_Processor implements PlugInFilter {
      * @return the new calculated coordinates
      */
     private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
+        IJ.showStatus("Calculating exact coordinates...");
         int[] foundCoordinates = new int[2];
         int leftBoundary = (int) xCor - this.halfPhotonOutlineSize;
         int topBoundary = (int) yCor - this.halfPhotonOutlineSize;
@@ -349,7 +330,8 @@ public class Photon_Image_Processor implements PlugInFilter {
      *
      * @return boolean for cancel or enter.
      */
-    private boolean showDialog() {
+    public int showDialog(ImagePlus ip, String string, PlugInFilterRunner pifr) {
+
         GenericDialog gd = new GenericDialog("Photon Image Processor");
 
         // default value is 20, 0 digits right of the decimal point
@@ -357,13 +339,14 @@ public class Photon_Image_Processor implements PlugInFilter {
 
         gd.showDialog();
         if (gd.wasCanceled()) {
-            return false;
+            return 0;
         }
 
         // get entered values
         //this.photonOutlineSize = (int) gd.getNextNumber();
-        return true;
+        return 1;
     }
+
 
     /**
      * This method displays the about information of the plugin.
@@ -407,5 +390,13 @@ public class Photon_Image_Processor implements PlugInFilter {
         // run the plugin
         IJ.runPlugIn(clazz.getName(), "");
     }
+
+    
+
+    @Override
+    public void setNPasses(int nPasses) {
+        this.nPasses = nPasses;
+    }
+
 
 }
