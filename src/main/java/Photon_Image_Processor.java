@@ -96,7 +96,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
 
         // default value is 20, 0 digits right of the decimal point
 //        gd.addSlider("Photon Grid Size", 1, 25, 1);
-        gd.addNumericField("Noise Tolerance", 0, 0);
+        gd.addNumericField("Noise Tolerance", 1, 0);
         gd.addPreviewCheckbox(pfr, "Show preview...");
         gd.addDialogListener(this.maxFind);
 
@@ -114,7 +114,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
         System.out.println(gd.getNextNumber());
         return PlugInFilter.DONE;
     }
-    
+
     @Override
     public void setNPasses(int nPasses) {
         this.nPasses = nPasses;
