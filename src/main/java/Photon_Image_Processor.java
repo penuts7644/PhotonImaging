@@ -22,9 +22,11 @@ import ij.gui.ImageWindow;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
 import ij.gui.Wand;
+import ij.plugin.filter.ExtendedPlugInFilter;
 //import ij.measure.ResultsTable;
 //import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
@@ -37,7 +39,7 @@ import java.awt.Polygon;
  *
  * @author Lonneke Scheffer & Wout van Helvoirt
  */
-public class Photon_Image_Processor implements PlugInFilter {
+public class Photon_Image_Processor implements ExtendedPlugInFilter {
 
     protected ImagePlus image;
     private int[][] photonCountMatrix;
@@ -48,7 +50,7 @@ public class Photon_Image_Processor implements PlugInFilter {
     private int photonCounter = 0;
     
     private SilentMaximumFinder maxFind;
-    
+
 
     /**
      * Setup method as initializer.
@@ -69,41 +71,45 @@ public class Photon_Image_Processor implements PlugInFilter {
             return PlugInFilter.DONE;
         }
 
-//        boolean dialogCorrect = this.showDialog();
-//        if (!dialogCorrect) {
-//            return PlugInFilter.DONE;
-//        }
         this.image = imp;
         this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
         this.maxFind = new SilentMaximumFinder();
-        
-//        this.photonCountMatrix = new int[10][10];
-//        this.photonCountMatrix[0][4] = 1;
-//        this.photonCountMatrix[1][4] = 1;
-//        this.photonCountMatrix[2][4] = 1;
-//        this.photonCountMatrix[3][4] = 1;
-//        this.photonCountMatrix[5][4] = 1;
-//        this.photonCountMatrix[6][4] = 1;
-//        this.photonCountMatrix[7][4] = 1;
-//        this.photonCountMatrix[8][4] = 1;
-//        this.photonCountMatrix[9][4] = 1;
-//
-//        this.photonCountMatrix[4][4] = 10;
-//
-//        this.photonCountMatrix[4][0] = 1;
-//        this.photonCountMatrix[4][1] = 1;
-//        this.photonCountMatrix[4][2] = 1;
-//        this.photonCountMatrix[4][3] = 1;
-//        this.photonCountMatrix[4][5] = 1;
-//        this.photonCountMatrix[4][6] = 1;
-//        this.photonCountMatrix[4][7] = 1;
-//        this.photonCountMatrix[4][8] = 1;
-//        this.photonCountMatrix[4][9] = 1;
+
         return PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
                 | PlugInFilter.PARALLELIZE_STACKS
                 | PlugInFilter.STACK_REQUIRED
                 | PlugInFilter.FINAL_PROCESSING;
+    }
+
+    /**
+     * This method is not used yet.
+     *
+     * @return int for cancel or enter.
+     */
+    @Override
+    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+        GenericDialog gd = new GenericDialog("Photon Image Processor " + command);
+
+        // default value is 20, 0 digits right of the decimal point
+//        gd.addSlider("Photon Grid Size", 1, 25, 1);
+        gd.addNumericField("Noise Tolerance", 0, 0);
+        gd.addPreviewCheckbox(pfr, "Show preview...");
+        gd.addDialogListener(this.maxFind);
+
+        gd.showDialog();
+        if (gd.wasCanceled()) {
+            return PlugInFilter.DONE;
+        }
+
+        if (!this.maxFind.dialogItemChanged(gd, null)) {
+            return PlugInFilter.DONE;
+        }
+
+        // get entered values
+//        this.photonOutlineSize = (int) gd.getNextNumber();
+        System.out.println(gd.getNextNumber());
+        return PlugInFilter.DONE;
     }
 
     /**
@@ -345,27 +351,6 @@ public class Photon_Image_Processor implements PlugInFilter {
     }
 
     /**
-     * This method is not used yet.
-     *
-     * @return boolean for cancel or enter.
-     */
-    private boolean showDialog() {
-        GenericDialog gd = new GenericDialog("Photon Image Processor");
-
-        // default value is 20, 0 digits right of the decimal point
-        gd.addSlider("Photon Grid Size", 1, 25, 1);
-
-        gd.showDialog();
-        if (gd.wasCanceled()) {
-            return false;
-        }
-
-        // get entered values
-        //this.photonOutlineSize = (int) gd.getNextNumber();
-        return true;
-    }
-
-    /**
      * This method displays the about information of the plugin.
      */
     public void showAbout() {
@@ -399,7 +384,7 @@ public class Photon_Image_Processor implements PlugInFilter {
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
+        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
@@ -407,5 +392,4 @@ public class Photon_Image_Processor implements PlugInFilter {
         // run the plugin
         IJ.runPlugIn(clazz.getName(), "");
     }
-
 }
