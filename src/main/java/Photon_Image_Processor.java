@@ -143,8 +143,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
         for (int i = 0; i < coordinates.npoints; i++) {
             int x = coordinates.xpoints[i];
             int y = coordinates.ypoints[i];
-            //int[] newCoordinates = this.findExactCoordinates(x, y, ip);
-            // this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
+//            int[] newCoordinates = this.findExactCoordinates(x, y, ip);
+//            this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
 
             // Add the adjusted coordinates to the photon count matrix
             this.photonCountMatrix[x][y]++;
@@ -390,7 +390,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
