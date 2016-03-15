@@ -39,7 +39,7 @@ import java.util.*;
  * version 20-Mar-2014 Watershed segmentation of EDM with tolerance>=1.0 does not kill fine particles
  */
 
-public class SilentMaximumFinder implements PlugInFilter, DialogListener {
+public class SilentMaximumFinder implements PlugInFilter {
     //filter params
     /** maximum height difference between points that are not counted as separate maxima */
     private static double tolerance = 10;
@@ -56,7 +56,7 @@ public class SilentMaximumFinder implements PlugInFilter, DialogListener {
     /** Do not create an image, just count maxima and add count to Results table */
     public final static int COUNT=5;
     /** what type of output to create (see constants above)*/
-    private static int outputType;
+    private static int outputType = POINT_SELECTION;
     /** what type of output to create was chosen in the dialog (see constants above)*/
     private static int dialogOutputType = POINT_SELECTION;
     /** output type names */
@@ -65,7 +65,7 @@ public class SilentMaximumFinder implements PlugInFilter, DialogListener {
     /** whether to exclude maxima at the edge of the image*/
     private static boolean excludeOnEdges;
     /** whether to accept maxima only in the thresholded height range*/
-    private static boolean useMinThreshold;
+    private static boolean useMinThreshold = false;
     /** whether to find darkest points on light background */
     private static boolean lightBackground;
     private ImagePlus imp;                          // the ImagePlus of the setup call
@@ -112,67 +112,47 @@ public class SilentMaximumFinder implements PlugInFilter, DialogListener {
         return flags;
     }
 
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
-        ImageProcessor ip = imp.getProcessor();
-        ip.resetBinaryThreshold(); // remove any invisible threshold set by Make Binary or Convert to Mask
-        thresholded = ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD;
-        GenericDialog gd = new GenericDialog(command);
-        int digits = (ip instanceof FloatProcessor)?2:0;
-        String unit = (imp.getCalibration()!=null)?imp.getCalibration().getValueUnit():null;
-        unit = (unit==null||unit.equals("Gray Value"))?":":" ("+unit+"):";
-        gd.addNumericField("Noise tolerance"+unit,tolerance, digits);
-        gd.addChoice("Output type:", outputTypeNames, outputTypeNames[dialogOutputType]);
-        gd.addCheckbox("Exclude edge maxima", excludeOnEdges);
-        if (thresholded)
-            gd.addCheckbox("Above lower threshold", useMinThreshold);
-        gd.addCheckbox("Light background", lightBackground);
-        gd.addPreviewCheckbox(pfr, "Preview point selection");
-        gd.addMessage("    "); //space for number of maxima
-        messageArea = (Label)gd.getMessage();
-        gd.addDialogListener(this);
-        checkboxes = gd.getCheckboxes();
-        previewing = true;
-        gd.addHelp(IJ.URL+"/docs/menus/process.html#find-maxima");
-        gd.showDialog();          //input by the user (or macro) happens here
-        if (gd.wasCanceled())
-            return DONE;
-        previewing = false;
-        if (!dialogItemChanged(gd, null))   //read parameters
-            return DONE;
-        IJ.register(this.getClass());       //protect static class variables (parameters) from garbage collection
-        return flags;
-    } // boolean showDialog
+//    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+//        ImageProcessor ip = imp.getProcessor();
+//        ip.resetBinaryThreshold(); // remove any invisible threshold set by Make Binary or Convert to Mask
+//        thresholded = ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD;
+//        GenericDialog gd = new GenericDialog(command);
+//        int digits = (ip instanceof FloatProcessor)?2:0;
+//        String unit = (imp.getCalibration()!=null)?imp.getCalibration().getValueUnit():null;
+//        unit = (unit==null||unit.equals("Gray Value"))?":":" ("+unit+"):";
+//        gd.addNumericField("Noise tolerance"+unit,tolerance, digits);
+//        gd.addChoice("Output type:", outputTypeNames, outputTypeNames[dialogOutputType]);
+//        gd.addCheckbox("Exclude edge maxima", excludeOnEdges);
+//        if (thresholded)
+//            gd.addCheckbox("Above lower threshold", useMinThreshold);
+//        gd.addCheckbox("Light background", lightBackground);
+//        gd.addPreviewCheckbox(pfr, "Preview point selection");
+//        gd.addMessage("    "); //space for number of maxima
+//        messageArea = (Label)gd.getMessage();
+//        gd.addDialogListener(this);
+//        checkboxes = gd.getCheckboxes();
+//        previewing = true;
+//        gd.addHelp(IJ.URL+"/docs/menus/process.html#find-maxima");
+//        gd.showDialog();          //input by the user (or macro) happens here
+//        if (gd.wasCanceled())
+//            return DONE;
+//        previewing = false;
+//        if (!dialogItemChanged(gd, null))   //read parameters
+//            return DONE;
+//        IJ.register(this.getClass());       //protect static class variables (parameters) from garbage collection
+//        return flags;
+//    } // boolean showDialog
 
-    /** Read the parameters (during preview or after showing the dialog) */
-    public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
-        tolerance = gd.getNextNumber();
-        if (tolerance<0) tolerance = 0;
-        dialogOutputType = gd.getNextChoiceIndex();
-        outputType = previewing ? POINT_SELECTION : dialogOutputType;
-        excludeOnEdges = gd.getNextBoolean();
-        if (thresholded)
-            useMinThreshold = gd.getNextBoolean();
-        else
-            useMinThreshold = false;
-        lightBackground = gd.getNextBoolean();
-        boolean invertedLut = imp.isInvertedLut();
-        if (useMinThreshold && ((invertedLut&&!lightBackground) || (!invertedLut&&lightBackground))) {
-            if (!thresholdWarningShown)
-                if (!IJ.showMessageWithCancel(
-                    "Find Maxima",
-                    "\"Above Lower Threshold\" option cannot be used\n"+
-                    "when finding minima (image with light background\n"+
-                    "or image with dark background and inverting LUT).")
-                    && !previewing)
-                return false;               // if faulty input is not detected during preview, "cancel" quits
-            thresholdWarningShown = true;
-            useMinThreshold = false;
-            ((Checkbox)(checkboxes.elementAt(1))).setState(false); //reset "Above Lower Threshold" checkbox
-        }
-        if (!gd.isPreviewActive())
-            messageArea.setText("");        // no "nnn Maxima" message when not previewing
-        return (!gd.invalidNumber());
-    } // public boolean DialogItemChanged
+//    /** Read the parameters (during preview or after showing the dialog) */
+//    public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
+//        tolerance = gd.getNextNumber();
+//        if (tolerance<0) tolerance = 0;
+//        outputType = POINT_SELECTION;
+//        useMinThreshold = false;
+//        if (!gd.isPreviewActive())
+//            messageArea.setText("");        // no "nnn Maxima" message when not previewing
+//        return (!gd.invalidNumber());
+//    } // public boolean DialogItemChanged
 
 //    /** Set his to the number of images to process (for the watershed progress bar only).
 //     *  Don't call or set nPasses to zero if no progress bar is desired. */
@@ -708,8 +688,8 @@ public class SilentMaximumFinder implements PlugInFilter, DialogListener {
                 rt.show("Results");
             } 
         }
-        if (previewing)
-            messageArea.setText((xyVector==null ? 0 : xyVector.size())+" Maxima");
+//        if (previewing)
+//            messageArea.setText((xyVector==null ? 0 : xyVector.size())+" Maxima");
     } //void analyzeAndMarkMaxima
 
    /** Create an 8-bit image by scaling the pixel values of ip to 1-254 (<lower threshold 0) and mark maximum areas as 255.
