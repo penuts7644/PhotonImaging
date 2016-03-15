@@ -90,14 +90,22 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * This method is not used yet.
+     * The showDialog method will be ran after the setup and creates the dialog window
+     * and shows it.
      *
-     * @return int for cancel or enter.
+     * Dialog window has support for noise tolerance value, preprocessing step and live
+     * preview (run executed one time).
+     *
+     * @param imp The ImagePlus.
+     * @param command String containing the command.
+     * @param pfr The PlugInFilterRunner necessary for live preview.
+     * @return int for cancel or ok.
      */
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
         GenericDialog gd = new GenericDialog("Photon Image Processor");
 
+        // Add fields to dialog.
         gd.addNumericField("Noise tolerance", this.tolerance, 0);
         gd.addCheckbox("Automatic preprocessing", true);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
@@ -121,6 +129,13 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         return PlugInFilter.DONE;
     }
 
+    /**
+     * This method changes the preview if user has entered a new value.
+     *
+     * @param gd The dialog window.
+     * @param e A AWTEvent.
+     * @return boolean false if one or more field ar not correct.
+     */
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.tolerance = gd.getNextNumber();
         this.preprocessing = gd.getNextBoolean();
@@ -210,18 +225,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         return maxima;
     }
 
-//    private int getAverageThreshold(ImageProcessor ip) {
-//        return ip.getAutoThreshold();
-//    }
-//
-//    private PolygonRoi getRoiSelection(float xCor, float yCor, int threshold, ImageProcessor ip) {
-//        Wand wd = new Wand(ip);
-//        wd.autoOutline((int) xCor, (int) yCor, threshold, 255, 1);
-//        System.out.println("N: " + wd.npoints + " X: " + wd.xpoints.length + " Y: " + wd.ypoints.length);
-//        PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, 3);
-//
-//        return pr;
-//    }
     /**
      * Calculate the exact positions of the given coordinates.
      *
@@ -336,19 +339,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         return (float) Math.sqrt((firstX - secondX) * (firstX - secondX)
                 + (firstY - secondY) * (firstY - secondY));
     }
-//
-//    /**
-//     * Add the coordinate pairs to the photon count matrix.
-//     *
-//     * @param coordinates
-//     */
-//    private void addToPhotonCount(Polygon coordinates) {
-//        for (int i = 0; i < coordinates.npoints; i++) {
-//            int x = coordinates.xpoints[i];
-//            int y = coordinates.ypoints[i];
-//            this.photonCountMatrix[x][y]++;
-//        }
-//    }
 
     /**
      * This method generates and displays the final image from the photonCountMatrix.
