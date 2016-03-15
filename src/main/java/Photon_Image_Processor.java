@@ -139,8 +139,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.tolerance = gd.getNextNumber();
         this.preprocessing = gd.getNextBoolean();
-        if (this.tolerance < 1) {
-            this.tolerance = 1;
+        if (this.tolerance < 0) {
+            this.tolerance = 0;
         }
         if (!gd.isPreviewActive()) {
             this.messageArea.setText("");
