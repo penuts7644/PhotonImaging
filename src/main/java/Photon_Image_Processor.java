@@ -406,7 +406,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
