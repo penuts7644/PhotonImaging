@@ -17,19 +17,19 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
-import ij.gui.PolygonRoi;
+import ij.gui.PointRoi;
 import ij.gui.Roi;
-import ij.gui.Wand;
 import ij.plugin.filter.ExtendedPlugInFilter;
-//import ij.measure.ResultsTable;
-//import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
+import java.awt.AWTEvent;
+import java.awt.Label;
 import java.awt.Polygon;
 
 /**
@@ -39,7 +39,7 @@ import java.awt.Polygon;
  *
  * @author Lonneke Scheffer & Wout van Helvoirt
  */
-public class Photon_Image_Processor implements ExtendedPlugInFilter {
+public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListener {
 
     protected ImagePlus image;
     private int[][] photonCountMatrix;
@@ -48,11 +48,15 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
     private final int halfPhotonOutlineSize = this.photonOutlineSize / 2;
 
     private int photonCounter = 0;
-    
+
     private SilentMaximumFinder maxFind;
-    
-    private int nPasses = 0;  
-    
+
+    private boolean previewing = false;
+    private double tolerance = 100;
+    private boolean preprocessing = true;
+    private Label messageArea;
+
+    private int nPasses = 0;
 
     /**
      * Setup method as initializer.
@@ -92,29 +96,44 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
      */
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
-        GenericDialog gd = new GenericDialog("Photon Image Processor " + command);
+        GenericDialog gd = new GenericDialog("Photon Image Processor");
 
-        // default value is 20, 0 digits right of the decimal point
-//        gd.addSlider("Photon Grid Size", 1, 25, 1);
-        gd.addNumericField("Noise Tolerance", 0, 0);
-        gd.addPreviewCheckbox(pfr, "Show preview...");
-        gd.addDialogListener(this.maxFind);
-
+        gd.addNumericField("Noise tolerance", this.tolerance, 0);
+        gd.addCheckbox("Automatic preprocessing", true);
+        gd.addPreviewCheckbox(pfr, "Enable preview...");
+        gd.addMessage("    "); //space for number of maxima
+        this.messageArea = (Label) gd.getMessage();
+        gd.addDialogListener(this);
+        this.previewing = true;
         gd.showDialog();
         if (gd.wasCanceled()) {
             return PlugInFilter.DONE;
         }
-
-        if (!this.maxFind.dialogItemChanged(gd, null)) {
+        this.previewing = false;
+        if (!this.dialogItemChanged(gd, null)) {
             return PlugInFilter.DONE;
         }
 
-        // get entered values
-//        this.photonOutlineSize = (int) gd.getNextNumber();
-        System.out.println(gd.getNextNumber());
+        // Get entered values.
+        this.tolerance = gd.getNextNumber();
+        this.preprocessing = gd.getNextBoolean();
+
         return PlugInFilter.DONE;
     }
-    
+
+    public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
+        this.tolerance = gd.getNextNumber();
+        this.preprocessing = gd.getNextBoolean();
+        if (this.tolerance < 1) {
+            this.tolerance = 1;
+        }
+        if (!gd.isPreviewActive()) {
+            this.messageArea.setText("");
+        }
+
+        return (!gd.invalidNumber());
+    }
+
     @Override
     public void setNPasses(int nPasses) {
         this.nPasses = nPasses;
@@ -133,25 +152,33 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
     public void run(ImageProcessor ip) {
         Polygon coordinates;
 
-        // preprocess the current image
-        this.preprocessImage(ip);
+        // Preprocess the current slice.
+        if (this.preprocessing) {
+            this.preprocessImage(ip);
+        }
 
-        // find the photon coordinates
+        // Find the photon coordinates.
         coordinates = this.findPhotons(ip);
 
-        // loop through all found coordinates
-        for (int i = 0; i < coordinates.npoints; i++) {
-            int x = coordinates.xpoints[i];
-            int y = coordinates.ypoints[i];
-//            int[] newCoordinates = this.findExactCoordinates(x, y, ip);
-//            this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
+        // If previewing enabled, show found maxima's on slice.
+        if (this.previewing) {
+            PointRoi p = new PointRoi(coordinates.xpoints, coordinates.ypoints, coordinates.npoints);
+            image.setRoi(p);
+            this.messageArea.setText((coordinates.xpoints == null ? 0 : coordinates.npoints) + " photons found");
+        } else {
+            // Loop through all found coordinates.
+            for (int i = 0; i < coordinates.npoints; i++) {
+                int x = coordinates.xpoints[i];
+                int y = coordinates.ypoints[i];
 
-            // Add the adjusted coordinates to the photon count matrix
-            this.photonCountMatrix[x][y]++;
+                //// Add the adjusted coordinates to the photon count matrix.
+                //int[] newCoordinates = this.findExactCoordinates(x, y, ip);
+                //this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
 
+                // Add the coordinates to the photon count matrix.
+                this.photonCountMatrix[x][y]++;
+            }
         }
-        // Add the found photon coordinates to the total count grid
-//        this.addToPhotonCount(coordinates);
     }
 
     /**
@@ -159,7 +186,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
      *
      */
     private void preprocessImage(ImageProcessor ip) {
-        // Perform 'despeckle' using RankFilters
+        // Perform 'despeckle' using RankFilters.
         IJ.showStatus("Preprocessing...");
         RankFilters r = new RankFilters();
         r.rank(ip, 1, RankFilters.MEDIAN);
@@ -174,7 +201,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
         int[][] coordinates;
 
         // Find the maxima using MaximumFinder
-        Polygon maxima = this.maxFind.getMaxima(ip, 22000, false);
+        Polygon maxima = this.maxFind.getMaxima(ip, this.tolerance, false);
 
         coordinates = new int[2][maxima.npoints];
         coordinates[0] = maxima.xpoints; // x coordinates
@@ -195,7 +222,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter {
 //
 //        return pr;
 //    }
-
     /**
      * Calculate the exact positions of the given coordinates.
      *
