@@ -112,54 +112,6 @@ public class SilentMaximumFinder implements PlugInFilter {
         return flags;
     }
 
-//    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
-//        ImageProcessor ip = imp.getProcessor();
-//        ip.resetBinaryThreshold(); // remove any invisible threshold set by Make Binary or Convert to Mask
-//        thresholded = ip.getMinThreshold()!=ImageProcessor.NO_THRESHOLD;
-//        GenericDialog gd = new GenericDialog(command);
-//        int digits = (ip instanceof FloatProcessor)?2:0;
-//        String unit = (imp.getCalibration()!=null)?imp.getCalibration().getValueUnit():null;
-//        unit = (unit==null||unit.equals("Gray Value"))?":":" ("+unit+"):";
-//        gd.addNumericField("Noise tolerance"+unit,tolerance, digits);
-//        gd.addChoice("Output type:", outputTypeNames, outputTypeNames[dialogOutputType]);
-//        gd.addCheckbox("Exclude edge maxima", excludeOnEdges);
-//        if (thresholded)
-//            gd.addCheckbox("Above lower threshold", useMinThreshold);
-//        gd.addCheckbox("Light background", lightBackground);
-//        gd.addPreviewCheckbox(pfr, "Preview point selection");
-//        gd.addMessage("    "); //space for number of maxima
-//        messageArea = (Label)gd.getMessage();
-//        gd.addDialogListener(this);
-//        checkboxes = gd.getCheckboxes();
-//        previewing = true;
-//        gd.addHelp(IJ.URL+"/docs/menus/process.html#find-maxima");
-//        gd.showDialog();          //input by the user (or macro) happens here
-//        if (gd.wasCanceled())
-//            return DONE;
-//        previewing = false;
-//        if (!dialogItemChanged(gd, null))   //read parameters
-//            return DONE;
-//        IJ.register(this.getClass());       //protect static class variables (parameters) from garbage collection
-//        return flags;
-//    } // boolean showDialog
-
-//    /** Read the parameters (during preview or after showing the dialog) */
-//    public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
-//        tolerance = gd.getNextNumber();
-//        if (tolerance<0) tolerance = 0;
-//        outputType = POINT_SELECTION;
-//        useMinThreshold = false;
-//        if (!gd.isPreviewActive())
-//            messageArea.setText("");        // no "nnn Maxima" message when not previewing
-//        return (!gd.invalidNumber());
-//    } // public boolean DialogItemChanged
-
-//    /** Set his to the number of images to process (for the watershed progress bar only).
-//     *  Don't call or set nPasses to zero if no progress bar is desired. */
-//    public void setNPasses(int nPasses) {
-//        this.nPasses = nPasses;
-//    }
-
     /** The plugin is inferred from ImageJ by this method
      * @param ip The image where maxima (or minima) should be found
      */
@@ -688,8 +640,6 @@ public class SilentMaximumFinder implements PlugInFilter {
                 rt.show("Results");
             } 
         }
-//        if (previewing)
-//            messageArea.setText((xyVector==null ? 0 : xyVector.size())+" Maxima");
     } //void analyzeAndMarkMaxima
 
    /** Create an 8-bit image by scaling the pixel values of ip to 1-254 (<lower threshold 0) and mark maximum areas as 255.
@@ -1258,12 +1208,4 @@ public class SilentMaximumFinder implements PlugInFilter {
         }
         return false;   //to make the compiler happy :-)
     } // isWithin
-
-//    /** add work done in the meanwhile and show progress */
-//    private void addProgress(double deltaProgress) {
-//        if (nPasses==0) return;
-//        progressDone += deltaProgress;
-////        IJ.showProgress(progressDone/nPasses);
-//    }
-
 }

@@ -21,6 +21,7 @@ import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
 import ij.gui.PointRoi;
+import ij.gui.ProgressBar;
 import ij.gui.Roi;
 import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
@@ -50,6 +51,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private int photonCounter = 0;
 
     private SilentMaximumFinder maxFind;
+    private ProgressBar pb;
 
     private boolean previewing = false;
     private double tolerance = 100;
@@ -81,6 +83,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
         this.maxFind = new SilentMaximumFinder();
         this.setNPasses(this.image.getStackSize());
+        this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
 
         return PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
@@ -134,8 +137,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      *
      * @param gd The dialog window.
      * @param e A AWTEvent.
-     * @return boolean false if one or more field ar not correct.
+     * @return boolean false if one or more field are not correct.
      */
+    @Override
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.tolerance = gd.getNextNumber();
         this.preprocessing = gd.getNextBoolean();
@@ -165,6 +169,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     @Override
     public void run(ImageProcessor ip) {
+        // Show status and set a progressbar.
+        IJ.showStatus("Processing...");
+        ip.setProgressBar(this.pb);
+
         Polygon coordinates;
 
         // Preprocess the current slice.
@@ -194,6 +202,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 this.photonCountMatrix[x][y]++;
             }
         }
+
+        // Update the progressbar.
+        this.pb.show(ip.getSliceNumber(), this.nPasses);
     }
 
     /**
@@ -202,8 +213,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     private void preprocessImage(ImageProcessor ip) {
         // Perform 'despeckle' using RankFilters.
-        IJ.showStatus("Preprocessing...");
-        RankFilters r = new RankFilters();
+        SilentRankFilters r = new SilentRankFilters();
         r.rank(ip, 1, RankFilters.MEDIAN);
     }
 
@@ -212,7 +222,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      *
      */
     private Polygon findPhotons(ImageProcessor ip) {
-        IJ.showStatus("Finding photons...");
         int[][] coordinates;
 
         // Find the maxima using MaximumFinder
@@ -234,7 +243,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @return the new calculated coordinates
      */
     private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
-        IJ.showStatus("Calculating exact coordinates...");
         int[] foundCoordinates = new int[2];
         int leftBoundary = (int) xCor - this.halfPhotonOutlineSize;
         int topBoundary = (int) yCor - this.halfPhotonOutlineSize;
@@ -345,8 +353,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     private void createOutputImage() {
 
-        IJ.showStatus("Generating image...");
-
         // Create new ByteProcessor for output image with matrix data and it's width and height.
         ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
         bp.setIntArray(this.photonCountMatrix);
@@ -406,7 +412,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SampleSinglePhotonData");
+        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
