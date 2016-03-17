@@ -360,7 +360,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         bp.setIntArray(this.photonCountMatrix);
 
         // Add the amount of different values in matrix.
-        List<Integer> diffMatrixCount = new ArrayList<Integer>();
+        List<Integer> diffMatrixCount = new ArrayList<>();
         for (int[] photonCountMatrix1 : this.photonCountMatrix) {
             for (int photonCountMatrix2 : photonCountMatrix1) {
                 if (!diffMatrixCount.contains(photonCountMatrix2)) {
@@ -369,8 +369,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             }
         }
 
-        System.out.println(diffMatrixCount);
-        // Use zero as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
+        // System.out.println(diffMatrixCount);
+        // Use 0 as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
         bp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
         bp.applyLut();
 
