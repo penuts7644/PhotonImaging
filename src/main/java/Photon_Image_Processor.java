@@ -32,6 +32,8 @@ import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
 import java.awt.Label;
 import java.awt.Polygon;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Photon_Image_Processor
@@ -225,7 +227,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         int[][] coordinates;
 
         // Find the maxima using MaximumFinder
-        Polygon maxima = this.maxFind.getMaxima(ip, this.tolerance, false);
+        Polygon maxima = this.maxFind.getMaxima(ip, this.tolerance, true); // Multiple outputs on ext. drive
 
         coordinates = new int[2][maxima.npoints];
         coordinates[0] = maxima.xpoints; // x coordinates
@@ -357,19 +359,20 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
         bp.setIntArray(this.photonCountMatrix);
 
-        // Search for largest count value in matrix.
-        int maxMatrixCount = 0;
+        // Add the amount of different values in matrix.
+        List<Integer> diffMatrixCount = new ArrayList<Integer>();
         for (int[] photonCountMatrix1 : this.photonCountMatrix) {
             for (int photonCountMatrix2 : photonCountMatrix1) {
-                if (photonCountMatrix2 > maxMatrixCount) {
-                    maxMatrixCount = photonCountMatrix2;
+                if (!diffMatrixCount.contains(photonCountMatrix2)) {
+                    diffMatrixCount.add(photonCountMatrix2);
                 }
             }
         }
 
-        System.out.println(maxMatrixCount);
-        // Use min and max values from matrix for for 0-255 grayscale pixel mapping.
-        bp.setMinAndMax(0, maxMatrixCount);
+        System.out.println(diffMatrixCount);
+        // Use zero as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
+        bp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
+        bp.applyLut();
 
         // Create new output image with title.
         ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.duplicate());
