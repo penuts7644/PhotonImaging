@@ -367,11 +367,12 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             }
         }
 
+        System.out.println(maxMatrixCount);
         // Use min and max values from matrix for for 0-255 grayscale pixel mapping.
         bp.setMinAndMax(0, maxMatrixCount);
 
         // Create new output image with title.
-        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.createImage());
+        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.duplicate());
 
         // Make new image window in ImageJ and set the window visible.
         ImageWindow outputWindow = new ImageWindow(outputImage);
@@ -412,7 +413,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
