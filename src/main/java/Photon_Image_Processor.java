@@ -47,10 +47,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     protected ImagePlus image;
     private int[][] photonCountMatrix;
 
-    private final int photonOutlineSize = 20;
-    private final int halfPhotonOutlineSize = this.photonOutlineSize / 2;
+//    private final int photonOutlineSize = 20;
+//    private final int halfPhotonOutlineSize = this.photonOutlineSize / 2;
 
-    private int photonCounter = 0;
+//    private int photonCounter = 0;
 
     private SilentMaximumFinder maxFind;
     private ProgressBar pb;
@@ -240,104 +240,119 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * Calculate the exact positions of the given coordinates.
+     * Calculate the exact subpixel positions of the photon events at the given coordinates.
      *
-     * @param xCor original x coordinate
-     * @param yCor original y coordinate
+     * @param xCor original x coordinate as found by MaximumFinder
+     * @param yCor original y coordinate as found by MaximumFinder
      * @param ip the imageprocessor
      * @return the new calculated coordinates
      */
-    private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
-        int[] foundCoordinates = new int[2];
-        int leftBoundary = (int) xCor - this.halfPhotonOutlineSize;
-        int topBoundary = (int) yCor - this.halfPhotonOutlineSize;
-
-        this.photonCounter++;
-
-        // Create a new ROI (region of interest, or selected space)
-        Roi photonOutline = new Roi(leftBoundary,
-                topBoundary,
-                this.photonOutlineSize,
-                this.photonOutlineSize);
-
-        // If the ROI is outside the frame (left and top), set the boundaries to 0
-        if (leftBoundary < 0) {
-            leftBoundary = 0;
-        }
-        if (topBoundary < 0) {
-            topBoundary = 0;
-        }
-
-        // set the ROI
-        ip.setRoi(photonOutline);
-        ImagePlus photonImp = new ImagePlus("single photon " + this.photonCounter, ip.crop());
-        photonImp.close();
-
-        // reset the ROI
-        ip.resetRoi();
-        ip.crop();
-
-//        old autothresholding method: (does not work)
-//        photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
-//        photonImp.show();
-//        photonImp.updateImage();
-//        photonImp.updateAndDraw();
-        // perform autothresholding
-        ImageProcessor photonIp = photonImp.getProcessor();
-        photonIp.autoThreshold();
-
-        // find the new midpoints
-        SilentMaximumFinder m = new SilentMaximumFinder();
-        Polygon photonMaxima = m.getMaxima(photonIp, 10, true);
-
-        // by default the 'new' coordinates are set to the original coordinates
-        foundCoordinates[0] = (int) xCor;
-        foundCoordinates[1] = (int) yCor;
-
-        // If one of the found coordinatepairs is contains the original coordinates,
-        // then they were right in the beginning, return the original coordinates
-        for (int i = 0; i < photonMaxima.npoints; i++) {
-            if (photonMaxima.xpoints[i] == this.halfPhotonOutlineSize
-                    && photonMaxima.ypoints[i] == this.halfPhotonOutlineSize) {
-                return foundCoordinates;
-            }
-        }
-
-        // All resulting coordinates are different from the original coordinates:
-        switch (photonMaxima.npoints) {
-            case 0:
-                // 1. if there were no coordinates found, return the original coordinates
-//            System.out.println("slice " + ip.getSliceNumber() + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
-                return foundCoordinates;
-            case 1:
-                // 2. if there was one coordinatepair found, return this pair
-//            System.out.println("slice " + ip.getSliceNumber() + " photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", now set to: " + foundCoordinates[0] + ", " + foundCoordinates[1] + " following: "+ (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
-                foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[0];
-                foundCoordinates[1] = topBoundary + photonMaxima.ypoints[0];
-                return foundCoordinates;
-            default:
-                // 3. there were multiple coordinatepairs found, return the one closest to the center,
-                // this is most likely to be the correct one
-                // set the first results as the 'new coordinates'
-                foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[0];
-                foundCoordinates[1] = topBoundary + photonMaxima.ypoints[0];
-                // calculate the distance of the first result to the center
-                float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
-                // compare with all other results
-                for (int i = 1; i < photonMaxima.npoints; i++) {
-                    float newDistance = this.getEuclidianDistance(xCor, yCor,
-                            (leftBoundary + photonMaxima.xpoints[i]),
-                            (topBoundary + photonMaxima.ypoints[i]));
-                    // if the newly found result is closer to the center, set it as the result
-                    if (newDistance < distance) {
-                        foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[i];
-                        foundCoordinates[1] = topBoundary + photonMaxima.ypoints[i];
-                        distance = newDistance;
-                    }
-                }
-                return foundCoordinates;
-        }
+    private int[] calculateSubPixelCoordinates(float xCor, float yCor, ImageProcessor ip){
+        int[] subPixelCoordinates = new int[2];
+        
+        return subPixelCoordinates;
     }
+    
+    
+//    /**
+//     * Calculate the exact positions of the given coordinates.
+//     *
+//     * @param xCor original x coordinate
+//     * @param yCor original y coordinate
+//     * @param ip the imageprocessor
+//     * @return the new calculated coordinates
+//     */
+//    private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
+//        int[] foundCoordinates = new int[2];
+//        int leftBoundary = (int) xCor - this.halfPhotonOutlineSize;
+//        int topBoundary = (int) yCor - this.halfPhotonOutlineSize;
+//
+//        this.photonCounter++;
+//
+//        // Create a new ROI (region of interest, or selected space)
+//        Roi photonOutline = new Roi(leftBoundary,
+//                topBoundary,
+//                this.photonOutlineSize,
+//                this.photonOutlineSize);
+//
+//        // If the ROI is outside the frame (left and top), set the boundaries to 0
+//        if (leftBoundary < 0) {
+//            leftBoundary = 0;
+//        }
+//        if (topBoundary < 0) {
+//            topBoundary = 0;
+//        }
+//
+//        // set the ROI
+//        ip.setRoi(photonOutline);
+//        ImagePlus photonImp = new ImagePlus("single photon " + this.photonCounter, ip.crop());
+//        photonImp.close();
+//
+//        // reset the ROI
+//        ip.resetRoi();
+//        ip.crop();
+//
+////        old autothresholding method: (does not work)
+////        photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
+////        photonImp.show();
+////        photonImp.updateImage();
+////        photonImp.updateAndDraw();
+//        // perform autothresholding
+//        ImageProcessor photonIp = photonImp.getProcessor();
+//        photonIp.autoThreshold();
+//
+//        // find the new midpoints
+//        SilentMaximumFinder m = new SilentMaximumFinder();
+//        Polygon photonMaxima = m.getMaxima(photonIp, 10, true);
+//
+//        // by default the 'new' coordinates are set to the original coordinates
+//        foundCoordinates[0] = (int) xCor;
+//        foundCoordinates[1] = (int) yCor;
+//
+//        // If one of the found coordinatepairs is contains the original coordinates,
+//        // then they were right in the beginning, return the original coordinates
+//        for (int i = 0; i < photonMaxima.npoints; i++) {
+//            if (photonMaxima.xpoints[i] == this.halfPhotonOutlineSize
+//                    && photonMaxima.ypoints[i] == this.halfPhotonOutlineSize) {
+//                return foundCoordinates;
+//            }
+//        }
+//
+//        // All resulting coordinates are different from the original coordinates:
+//        switch (photonMaxima.npoints) {
+//            case 0:
+//                // 1. if there were no coordinates found, return the original coordinates
+////            System.out.println("slice " + ip.getSliceNumber() + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
+//                return foundCoordinates;
+//            case 1:
+//                // 2. if there was one coordinatepair found, return this pair
+////            System.out.println("slice " + ip.getSliceNumber() + " photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", now set to: " + foundCoordinates[0] + ", " + foundCoordinates[1] + " following: "+ (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
+//                foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[0];
+//                foundCoordinates[1] = topBoundary + photonMaxima.ypoints[0];
+//                return foundCoordinates;
+//            default:
+//                // 3. there were multiple coordinatepairs found, return the one closest to the center,
+//                // this is most likely to be the correct one
+//                // set the first results as the 'new coordinates'
+//                foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[0];
+//                foundCoordinates[1] = topBoundary + photonMaxima.ypoints[0];
+//                // calculate the distance of the first result to the center
+//                float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
+//                // compare with all other results
+//                for (int i = 1; i < photonMaxima.npoints; i++) {
+//                    float newDistance = this.getEuclidianDistance(xCor, yCor,
+//                            (leftBoundary + photonMaxima.xpoints[i]),
+//                            (topBoundary + photonMaxima.ypoints[i]));
+//                    // if the newly found result is closer to the center, set it as the result
+//                    if (newDistance < distance) {
+//                        foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[i];
+//                        foundCoordinates[1] = topBoundary + photonMaxima.ypoints[i];
+//                        distance = newDistance;
+//                    }
+//                }
+//                return foundCoordinates;
+//        }
+//    }
 
     /**
      * Calculate the euclidian distance between two points in two-dimensional space.
