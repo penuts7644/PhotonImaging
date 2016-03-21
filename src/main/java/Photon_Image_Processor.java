@@ -200,6 +200,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 //int[] newCoordinates = this.findExactCoordinates(x, y, ip);
                 //this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
 
+                //PolygonRoi t2 = this.getRoiSelection(x, y, ip.getAutoThreshold();, ip);
+                //this.image.setRoi(t2, true);
+
                 // Add the coordinates to the photon count matrix.
                 this.photonCountMatrix[x][y]++;
             }
@@ -369,7 +372,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             }
         }
 
-        // System.out.println(diffMatrixCount);
         // Use 0 as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
         bp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
         bp.applyLut();
@@ -416,7 +418,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/NIFTY/GoogleDrive/Documenten/HanzeHogeschool/Thema11en12/Themaopdracht/SinglePhotonData");
+        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
