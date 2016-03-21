@@ -445,7 +445,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Open the image sequence
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
-//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/SinglePhotonData");
+        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/test_lonneke_kan_weg");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
