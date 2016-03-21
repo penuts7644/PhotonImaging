@@ -329,10 +329,8 @@ public class SilentMaximumFinder implements PlugInFilter {
         boolean excludeEdgesNow = excludeOnEdges && outputType!=SEGMENTED;
 
         if (Thread.currentThread().isInterrupted()) return null;
-//        IJ.showStatus("Getting sorted maxima...");
         long[] maxPoints = getSortedMaxPoints(ip, typeP, excludeEdgesNow, isEDM, globalMin, globalMax, threshold); 
         if (Thread.currentThread().isInterrupted()) return null;
-//        IJ.showStatus("Analyzing  maxima...");
         float maxSortingError = 0;
         if (ip instanceof FloatProcessor)   //sorted sequence may be inaccurate by this value
             maxSortingError = 1.1f * (isEDM ? SQRT2/2f : (globalMax-globalMin)/2e9f);
@@ -426,7 +424,6 @@ public class SilentMaximumFinder implements PlugInFilter {
         } // for y
         if (thread.isInterrupted()) return null;
         //long t1 = System.currentTimeMillis();IJ.log("markMax:"+(t1-t0));
-        
         float vFactor = (float)(2e9/(globalMax-globalMin)); //for converting float values into a 32-bit int
         long[] maxPoints = new long[nMax];                  //value (int) is in the upper 32 bit, pixel offset in the lower
         int iMax = 0;
