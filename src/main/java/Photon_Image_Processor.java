@@ -21,18 +21,22 @@ import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
 import ij.gui.PointRoi;
+import ij.gui.PolygonRoi;
 import ij.gui.ProgressBar;
 import ij.gui.Roi;
+import ij.gui.Wand;
 import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
 import ij.process.ByteProcessor;
+import ij.process.FloatPolygon;
 import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
 import java.awt.Label;
 import java.awt.Polygon;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -185,6 +189,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Find the photon coordinates.
         coordinates = this.findPhotons(ip);
 
+        // Get average threshold for this image.
+        int avgThreshold = ip.getAutoThreshold();
+
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
             PointRoi p = new PointRoi(coordinates.xpoints, coordinates.ypoints, coordinates.npoints);
@@ -200,8 +207,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 //int[] newCoordinates = this.findExactCoordinates(x, y, ip);
                 //this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
 
-                //PolygonRoi t2 = this.getRoiSelection(x, y, ip.getAutoThreshold();, ip);
-                //this.image.setRoi(t2, true);
+                int[] t2 = this.calculateSubPixelCoordinates(x, y, avgThreshold, ip);
 
                 // Add the coordinates to the photon count matrix.
                 this.photonCountMatrix[x][y]++;
@@ -247,13 +253,18 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param ip the imageprocessor
      * @return the new calculated coordinates
      */
-    private int[] calculateSubPixelCoordinates(float xCor, float yCor, ImageProcessor ip){
+    private int[] calculateSubPixelCoordinates(float xCor, float yCor, int avgThreshold, ImageProcessor ip){
         int[] subPixelCoordinates = new int[2];
-        
+        Wand wd = new Wand(ip);
+
+        wd.autoOutline((int) xCor, (int) yCor, avgThreshold, 255, 0);
+        PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI);
+
+        //this.image.setRoi(pr, true);
+
         return subPixelCoordinates;
     }
-    
-    
+
 //    /**
 //     * Calculate the exact positions of the given coordinates.
 //     *
@@ -433,7 +444,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
-        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
