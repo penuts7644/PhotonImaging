@@ -52,20 +52,17 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
 //    private final int photonOutlineSize = 20;
 //    private final int halfPhotonOutlineSize = this.photonOutlineSize / 2;
-
 //    private int photonCounter = 0;
-
     private SilentMaximumFinder maxFind;
     private ProgressBar pb;
 
     private boolean previewing = false;
     private double tolerance = 100;
     private boolean preprocessing = true;
+    private String method = "Fast";
     private Label messageArea;
 
     private int nPasses = 0;
-    
-    private boolean subPixelResolution = true;
 
     /**
      * Setup method as initializer.
@@ -87,18 +84,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         }
 
         this.image = imp;
-        
-        if (this.subPixelResolution){
-            this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
-        } else{
-            this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
-        }
-        
+
         this.maxFind = new SilentMaximumFinder();
         this.setNPasses(this.image.getStackSize());
-        
-        
-        
+
         this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
 
         return PlugInFilter.DOES_STACKS
@@ -109,11 +98,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * The showDialog method will be ran after the setup and creates the dialog window
-     * and shows it.
+     * The showDialog method will be ran after the setup and creates the dialog window and shows it.
      *
-     * Dialog window has support for noise tolerance value, preprocessing step and live
-     * preview (run executed one time).
+     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run executed one time).
      *
      * @param imp The ImagePlus.
      * @param command String containing the command.
@@ -126,6 +113,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         // Add fields to dialog.
         gd.addNumericField("Noise tolerance", this.tolerance, 0);
+        gd.addChoice("Method", new String[] {"Fast", "Accurate", "Subpixel resolution"}, "Fast");
         gd.addCheckbox("Automatic preprocessing", true);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
         gd.addMessage("    "); //space for number of maxima
@@ -143,7 +131,14 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         // Get entered values.
         this.tolerance = gd.getNextNumber();
+        this.method = gd.getNextChoice();
         this.preprocessing = gd.getNextBoolean();
+
+        if (this.method.equals("Subpixel resolution")) {
+            this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
+        } else {
+            this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
+        }
 
         return PlugInFilter.DONE;
     }
@@ -158,6 +153,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     @Override
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.tolerance = gd.getNextNumber();
+        this.method = gd.getNextChoice();
         this.preprocessing = gd.getNextBoolean();
         if (this.tolerance < 0) {
             this.tolerance = 0;
@@ -210,7 +206,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 int x = coordinates.xpoints[i];
                 int y = coordinates.ypoints[i];
 
-                if (this.subPixelResolution){
+                if (true) {
                     int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip);
                     x = subPixelCoordinates[0];
                     y = subPixelCoordinates[1];
@@ -260,18 +256,17 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param ip the imageprocessor
      * @return the new calculated coordinates
      */
-    private int[] calculateSubPixelCoordinates(int xCor, int yCor, ImageProcessor ip){
+    private int[] calculateSubPixelCoordinates(int xCor, int yCor, ImageProcessor ip) {
         int[] subPixelCoordinates = new int[2];
         Wand wd = new Wand(ip);
 
         //wd.autoOutline(xCor, yCor, ip.getAutoThreshold(), ip.getMax(), Wand.EIGHT_CONNECTED);
-        wd.autoOutline(xCor, yCor, (double)ip.getAutoThreshold(), Wand.FOUR_CONNECTED);
+        wd.autoOutline(xCor, yCor, (double) ip.getAutoThreshold(), Wand.FOUR_CONNECTED);
         PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI);
         Rectangle rect = pr.getBounds();
-        
-        
-        subPixelCoordinates[0] = (int)rect.getCenterX() * 2;
-        subPixelCoordinates[1] = (int)rect.getCenterY() * 2;
+
+        subPixelCoordinates[0] = (int) rect.getCenterX() * 2;
+        subPixelCoordinates[1] = (int) rect.getCenterY() * 2;
 
 //        if (ip.getSliceNumber() == 1) {
 //            //this.image.setRoi(pr, true);
@@ -281,7 +276,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        System.out.println("* oldx: "+xCor+" oldy: "+yCor);
 //        System.out.println("* width: "+pr.getBounds().width+" height: "+pr.getBounds().height);
 //        System.out.println("* x: "+pr.getBounds().getCenterX()+" y: "+pr.getBounds().getCenterY());
-
         return subPixelCoordinates;
     }
 
@@ -384,7 +378,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //                return foundCoordinates;
 //        }
 //    }
-
     /**
      * Calculate the euclidian distance between two points in two-dimensional space.
      *
@@ -465,7 +458,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
 //        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-        IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
+//        IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
