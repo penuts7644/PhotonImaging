@@ -30,13 +30,12 @@ import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
 import ij.process.ByteProcessor;
-import ij.process.FloatPolygon;
 import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
 import java.awt.Label;
 import java.awt.Polygon;
+import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -65,6 +64,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private Label messageArea;
 
     private int nPasses = 0;
+    
+    private boolean subPixelResolution = true;
 
     /**
      * Setup method as initializer.
@@ -86,16 +87,25 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         }
 
         this.image = imp;
-        this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
+        
+        if (this.subPixelResolution){
+            this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
+        } else{
+            this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
+        }
+        
         this.maxFind = new SilentMaximumFinder();
         this.setNPasses(this.image.getStackSize());
+        
+        
+        
         this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
 
         return PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
                 | PlugInFilter.PARALLELIZE_STACKS
-                | PlugInFilter.STACK_REQUIRED;
-                //| PlugInFilter.FINAL_PROCESSING;
+                | PlugInFilter.STACK_REQUIRED
+                | PlugInFilter.FINAL_PROCESSING;
     }
 
     /**
@@ -200,11 +210,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 int x = coordinates.xpoints[i];
                 int y = coordinates.ypoints[i];
 
-                //// Add the adjusted coordinates to the photon count matrix.
-                //int[] newCoordinates = this.findExactCoordinates(x, y, ip);
-                //this.photonCountMatrix[newCoordinates[0]][newCoordinates[1]]++;
-
-                int[] t2 = this.calculateSubPixelCoordinates(x, y, ip);
+                if (this.subPixelResolution){
+                    int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip);
+                    x = subPixelCoordinates[0];
+                    y = subPixelCoordinates[1];
+                }
 
                 // Add the coordinates to the photon count matrix.
                 this.photonCountMatrix[x][y]++;
@@ -257,15 +267,20 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         //wd.autoOutline(xCor, yCor, ip.getAutoThreshold(), ip.getMax(), Wand.EIGHT_CONNECTED);
         wd.autoOutline(xCor, yCor, (double)ip.getAutoThreshold(), Wand.FOUR_CONNECTED);
         PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI);
+        Rectangle rect = pr.getBounds();
+        
+        
+        subPixelCoordinates[0] = (int)rect.getCenterX() * 2;
+        subPixelCoordinates[1] = (int)rect.getCenterY() * 2;
 
 //        if (ip.getSliceNumber() == 1) {
 //            //this.image.setRoi(pr, true);
 //            this.image.setRoi(pr.getBounds());
 //        }
-        System.out.println("image: "+ip.getSliceNumber());
-        System.out.println("* oldx: "+xCor+" oldy: "+yCor);
-        System.out.println("* width: "+pr.getBounds().width+" height: "+pr.getBounds().height);
-        System.out.println("* x: "+pr.getBounds().getCenterX()+" y: "+pr.getBounds().getCenterY());
+//        System.out.println("image: "+ip.getSliceNumber());
+//        System.out.println("* oldx: "+xCor+" oldy: "+yCor);
+//        System.out.println("* width: "+pr.getBounds().width+" height: "+pr.getBounds().height);
+//        System.out.println("* x: "+pr.getBounds().getCenterX()+" y: "+pr.getBounds().getCenterY());
 
         return subPixelCoordinates;
     }
@@ -445,7 +460,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Open the image sequence
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
-        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/test_lonneke_kan_weg");
+        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/test_lonneke_kan_weg/100100");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
