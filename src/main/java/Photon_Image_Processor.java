@@ -55,6 +55,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //    private int photonCounter = 0;
     private SilentMaximumFinder maxFind;
     private ProgressBar pb;
+    private Wand wd;
+    private float autothreshold;
 
     private boolean previewing = false;
     private double tolerance = 100;
@@ -89,6 +91,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.setNPasses(this.image.getStackSize());
 
         this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
+       
 
         return PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
@@ -194,6 +197,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         // Find the photon coordinates.
         coordinates = this.findPhotons(ip);
+        
+        
 
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
@@ -201,13 +206,16 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             image.setRoi(p);
             this.messageArea.setText((coordinates.xpoints == null ? 0 : coordinates.npoints) + " photons found");
         } else {
+            this.wd = new Wand(ip);
+            this.autothreshold = ip.getAutoThreshold();
+            
             // Loop through all found coordinates.
             for (int i = 0; i < coordinates.npoints; i++) {
                 int x = coordinates.xpoints[i];
                 int y = coordinates.ypoints[i];
 
                 if (true) {
-                    int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip);
+                    int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip, autothreshold);
                     x = subPixelCoordinates[0];
                     y = subPixelCoordinates[1];
                 }
@@ -256,17 +264,17 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param ip the imageprocessor
      * @return the new calculated coordinates
      */
-    private int[] calculateSubPixelCoordinates(int xCor, int yCor, ImageProcessor ip) {
+    private int[] calculateSubPixelCoordinates(int xCor, int yCor, ImageProcessor ip, float autoThreshold){
         int[] subPixelCoordinates = new int[2];
-        Wand wd = new Wand(ip);
+        
 
         //wd.autoOutline(xCor, yCor, ip.getAutoThreshold(), ip.getMax(), Wand.EIGHT_CONNECTED);
-        wd.autoOutline(xCor, yCor, (double) ip.getAutoThreshold(), Wand.FOUR_CONNECTED);
-        PolygonRoi pr = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI);
-        Rectangle rect = pr.getBounds();
-
-        subPixelCoordinates[0] = (int) rect.getCenterX() * 2;
-        subPixelCoordinates[1] = (int) rect.getCenterY() * 2;
+        this.wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
+        Rectangle rect = new PolygonRoi(this.wd.xpoints, this.wd.ypoints, this.wd.npoints, Roi.FREEROI).getBounds();
+        
+        
+        subPixelCoordinates[0] = (int)rect.getCenterX() * 2;
+        subPixelCoordinates[1] = (int)rect.getCenterY() * 2;
 
 //        if (ip.getSliceNumber() == 1) {
 //            //this.image.setRoi(pr, true);
