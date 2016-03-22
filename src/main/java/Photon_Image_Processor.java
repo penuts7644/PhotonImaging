@@ -56,7 +56,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private SilentMaximumFinder maxFind;
     private ProgressBar pb;
     private Wand wd;
-    private float autothreshold;
+    private float autoThreshold;
 
     private boolean previewing = false;
     private double tolerance = 100;
@@ -91,6 +91,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.setNPasses(this.image.getStackSize());
 
         this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
+        
+        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
        
 
         return PlugInFilter.DOES_STACKS
@@ -188,42 +190,75 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         IJ.showStatus("Processing...");
         ip.setProgressBar(this.pb);
 
-        Polygon coordinates;
+        Polygon rawCoordinates;
 
         // Preprocess the current slice.
         if (this.preprocessing) {
             this.preprocessImage(ip);
         }
-
+        
         // Find the photon coordinates.
-        coordinates = this.findPhotons(ip);
+        rawCoordinates = this.findPhotons(ip);
         
         
 
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
-            PointRoi p = new PointRoi(coordinates.xpoints, coordinates.ypoints, coordinates.npoints);
+            PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
             image.setRoi(p);
-            this.messageArea.setText((coordinates.xpoints == null ? 0 : coordinates.npoints) + " photons found");
+            this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
+        } else if (this.method.equals("Fast")) {
+            for (int i = 0; i < rawCoordinates.npoints; i++) {
+//                int x = coordinates.xpoints[i];
+//                int y = coordinates.ypoints[i];
+//                this.photonCountMatrix[x][y]++;
+                this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
+            }
         } else {
             this.wd = new Wand(ip);
-            this.autothreshold = ip.getAutoThreshold();
+            this.autoThreshold = ip.getAutoThreshold();
+            double[] exactCoordinates;
+            int x;
+            int y;
             
-            // Loop through all found coordinates.
-            for (int i = 0; i < coordinates.npoints; i++) {
-                int x = coordinates.xpoints[i];
-                int y = coordinates.ypoints[i];
-
-                if (true) {
-                    int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip, autothreshold);
-                    x = subPixelCoordinates[0];
-                    y = subPixelCoordinates[1];
+            if (this.method.equals("Accurate")){
+                for (int i = 0; i < rawCoordinates.npoints; i++) {
+                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
+                    x = (int)exactCoordinates[0];
+                    y = (int)exactCoordinates[1];
+                    this.photonCountMatrix[x][y]++;
                 }
-
-                // Add the coordinates to the photon count matrix.
-                this.photonCountMatrix[x][y]++;
+            } else {
+                // method == Subpixel resolution
+                for (int i = 0; i < rawCoordinates.npoints; i++) {
+                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
+                    x = (int)(exactCoordinates[0] * 2);
+                    y = (int)(exactCoordinates[1] * 2);
+                    this.photonCountMatrix[x][y]++;
+                }
             }
+            
         }
+            
+//        } else{
+//            this.wd = new Wand(ip);
+//            this.autoThreshold = ip.getAutoThreshold();
+//            
+//            // Loop through all found coordinates.
+//            for (int i = 0; i < coordinates.npoints; i++) {
+//                int x = coordinates.xpoints[i];
+//                int y = coordinates.ypoints[i];
+//
+//                if (true) {
+//                    int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip, autoThreshold);
+//                    x = subPixelCoordinates[0];
+//                    y = subPixelCoordinates[1];
+//                }
+//
+//                // Add the coordinates to the photon count matrix.
+//                this.photonCountMatrix[x][y]++;
+//            }
+//        }
 
         // Update the progressbar.
         this.pb.show(ip.getSliceNumber(), this.nPasses);
@@ -264,22 +299,16 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param ip the imageprocessor
      * @return the new calculated coordinates
      */
-    private int[] calculateSubPixelCoordinates(int xCor, int yCor, ImageProcessor ip, float autoThreshold){
-        int[] subPixelCoordinates = new int[2];
-        
+    private double[] calculateExactCoordinates(int xCor, int yCor, ImageProcessor ip){
+        double[] subPixelCoordinates = new double[2];
 
         //wd.autoOutline(xCor, yCor, ip.getAutoThreshold(), ip.getMax(), Wand.EIGHT_CONNECTED);
-        this.wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
+        this.wd.autoOutline(xCor, yCor, this.autoThreshold, Wand.FOUR_CONNECTED);
         Rectangle rect = new PolygonRoi(this.wd.xpoints, this.wd.ypoints, this.wd.npoints, Roi.FREEROI).getBounds();
-        
-        
-        subPixelCoordinates[0] = (int)rect.getCenterX() * 2;
-        subPixelCoordinates[1] = (int)rect.getCenterY() * 2;
 
-//        if (ip.getSliceNumber() == 1) {
-//            //this.image.setRoi(pr, true);
-//            this.image.setRoi(pr.getBounds());
-//        }
+        subPixelCoordinates[0] = rect.getCenterX();
+        subPixelCoordinates[1] = rect.getCenterY();
+
 //        System.out.println("image: "+ip.getSliceNumber());
 //        System.out.println("* oldx: "+xCor+" oldy: "+yCor);
 //        System.out.println("* width: "+pr.getBounds().width+" height: "+pr.getBounds().height);
