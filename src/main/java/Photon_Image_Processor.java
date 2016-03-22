@@ -138,11 +138,15 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.tolerance = gd.getNextNumber();
         this.method = gd.getNextChoice();
         this.preprocessing = gd.getNextBoolean();
+        
+        
 
         if (this.method.equals("Subpixel resolution")) {
             this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
+            System.out.println("OKE TWEE KEER TWEE");
         } else {
             this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
+            System.out.println("EEN");
         }
 
         return PlugInFilter.DONE;
