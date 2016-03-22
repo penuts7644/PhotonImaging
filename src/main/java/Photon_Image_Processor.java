@@ -205,12 +205,15 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
         } else if (this.method.equals("Fast")) {
             for (int i = 0; i < rawCoordinates.npoints; i++) {
+                // Loop through all raw coordinates and add them to the count matrix.
 //                int x = coordinates.xpoints[i];
 //                int y = coordinates.ypoints[i];
 //                this.photonCountMatrix[x][y]++;
                 this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
             }
         } else {
+            // Calculating the auto threshold takes relatively long
+            // so this function is only called once per image (not for every photon)
             this.autoThreshold = ip.getAutoThreshold();
             double[] exactCoordinates;
             int x;
@@ -218,14 +221,18 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             
             if (this.method.equals("Accurate")){
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
+                    // Loop through all raw coordinates, calculate the exact coordinates,
+                    // floor the coordinates, and add them to the count matrix.
                     exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
                     x = (int)exactCoordinates[0];
                     y = (int)exactCoordinates[1];
                     this.photonCountMatrix[x][y]++;
                 }
             } else {
-                // method == Subpixel resolution
+                // this.method equals "Subpixel resolution"
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
+                    // Loop through all raw coordinates, calculate the exact coordinates,
+                    // double the coordinates, and add them to the count matrix.
                     exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
                     x = (int)(exactCoordinates[0] * 2);
                     y = (int)(exactCoordinates[1] * 2);
@@ -234,26 +241,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             }
             
         }
-            
-//        } else{
-//            this.wd = new Wand(ip);
-//            this.autoThreshold = ip.getAutoThreshold();
-//            
-//            // Loop through all found coordinates.
-//            for (int i = 0; i < coordinates.npoints; i++) {
-//                int x = coordinates.xpoints[i];
-//                int y = coordinates.ypoints[i];
-//
-//                if (true) {
-//                    int[] subPixelCoordinates = this.calculateSubPixelCoordinates(x, y, ip, autoThreshold);
-//                    x = subPixelCoordinates[0];
-//                    y = subPixelCoordinates[1];
-//                }
-//
-//                // Add the coordinates to the photon count matrix.
-//                this.photonCountMatrix[x][y]++;
-//            }
-//        }
 
         // Update the progressbar.
         this.pb.show(ip.getSliceNumber(), this.nPasses);
@@ -295,32 +282,116 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @return the new calculated coordinates
      */
     private double[] calculateExactCoordinates(int xCor, int yCor, ImageProcessor ip){
-        double[] subPixelCoordinates = new double[2];
+        // A new wand MUST BE created here, otherwise the same wand object might be used
+        // for multiple photons at the same time (-> really weird results)
         Wand wd = new Wand(ip);
-
-        //wd.autoOutline(xCor, yCor, ip.getAutoThreshold(), ip.getMax(), Wand.EIGHT_CONNECTED);
+        double[] subPixelCoordinates = new double[2];
+        
+        // Outline the center of the photon using the wand tool
         wd.autoOutline(xCor, yCor, this.autoThreshold, Wand.FOUR_CONNECTED);
+        
+        // Draw a rectangle around the outline
         Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
 
+        // Get the x and y center of the rectangle
         subPixelCoordinates[0] = rect.getCenterX();
         subPixelCoordinates[1] = rect.getCenterY();
 
+//        // Print statements for testing/debugging
 //        System.out.println("image: "+ip.getSliceNumber());
-//        System.out.println("* oldx: "+xCor+" oldy: "+yCor);
+//        System.out.println("* old x: "+xCor+" old y: "+yCor);
 //        System.out.println("* width: "+rect.width+" height: "+rect.height);
-//        System.out.println("* x: "+rect.getCenterX()+" y: "+rect.getCenterY());
+//        System.out.println("* new x: "+rect.getCenterX()+" new y: "+rect.getCenterY());
         
 //        System.out.println(xCor - rect.getCenterX());
 //        System.out.println(yCor - rect.getCenterY());
         
-        if (Math.abs(xCor - rect.getCenterX()) >= 10 || Math.abs(yCor - rect.getCenterY()) >= 10){
-            System.out.println("Hellup! " + (xCor - rect.getCenterX()) + ", " + (yCor - rect.getCenterY()));
-        }
+//        if (Math.abs(xCor - rect.getCenterX()) >= 10 || Math.abs(yCor - rect.getCenterY()) >= 10){
+//            System.out.println("Hellup! " + (xCor - rect.getCenterX()) + ", " + (yCor - rect.getCenterY()));
+//        }
         
 
         return subPixelCoordinates;
     }
 
+
+    /**
+     * This method generates and displays the final image from the photonCountMatrix.
+     */
+    private void createOutputImage() {
+
+        // Create new ByteProcessor for output image with matrix data and it's width and height.
+        ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
+        bp.setIntArray(this.photonCountMatrix);
+
+        // Add the amount of different values in matrix.
+        List<Integer> diffMatrixCount = new ArrayList<>();
+        for (int[] photonCountMatrix1 : this.photonCountMatrix) {
+            for (int photonCountMatrix2 : photonCountMatrix1) {
+                if (!diffMatrixCount.contains(photonCountMatrix2)) {
+                    diffMatrixCount.add(photonCountMatrix2);
+                }
+            }
+        }
+
+        // Use 0 as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
+        bp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
+        bp.applyLut();
+
+        // Create new output image with title.
+        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.duplicate());
+
+        // Make new image window in ImageJ and set the window visible.
+        ImageWindow outputWindow = new ImageWindow(outputImage);
+        outputWindow.setVisible(true);
+    }
+
+    /**
+     * This method displays the about information of the plugin.
+     */
+    public void showAbout() {
+        IJ.showMessage("About Photon Image Processor",
+                "Test help message."
+        );
+    }
+
+    /**
+     * Main method for debugging.
+     *
+     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plugin, e.g.
+     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     *
+     * @param args unused
+     */
+    public static void main(String[] args) {
+        // set the plugins.dir property to make the plugin appear in the Plugins menu
+        Class<?> clazz = Photon_Image_Processor.class;
+        String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
+        String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
+        System.setProperty("plugins.dir", pluginsDir);
+
+        // start ImageJ
+        new ImageJ();
+
+        // Open the image sequence
+//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        // paths Wout
+//        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
+//        IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
+        ImagePlus image = IJ.getImage();
+
+        // Only if you use new ImagePlus(path) to open the file
+        //image.show();
+        // run the plugin
+        IJ.runPlugIn(clazz.getName(), "");
+    }
+}
+
+
+// OLD EXACT MIDPOINT CALCULATOR
+// Probably won't be used anymore because it is very slow...
+// ...but I can't throw it away yet because it took so much time to make
 //    /**
 //     * Calculate the exact positions of the given coordinates.
 //     *
@@ -420,92 +491,17 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //                return foundCoordinates;
 //        }
 //    }
-    /**
-     * Calculate the euclidian distance between two points in two-dimensional space.
-     *
-     * @param firstX x coordinate of the first point
-     * @param firstY y coordinate of the first point
-     * @param secondX x coordinate of the second point
-     * @param secondY y coordinate of the second point
-     * @return euclidian distance between the two points
-     */
-    private float getEuclidianDistance(float firstX, float firstY, float secondX, float secondY) {
-        return (float) Math.sqrt((firstX - secondX) * (firstX - secondX)
-                + (firstY - secondY) * (firstY - secondY));
-    }
-
-    /**
-     * This method generates and displays the final image from the photonCountMatrix.
-     */
-    private void createOutputImage() {
-
-        // Create new ByteProcessor for output image with matrix data and it's width and height.
-        ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
-        bp.setIntArray(this.photonCountMatrix);
-
-        // Add the amount of different values in matrix.
-        List<Integer> diffMatrixCount = new ArrayList<>();
-        for (int[] photonCountMatrix1 : this.photonCountMatrix) {
-            for (int photonCountMatrix2 : photonCountMatrix1) {
-                if (!diffMatrixCount.contains(photonCountMatrix2)) {
-                    diffMatrixCount.add(photonCountMatrix2);
-                }
-            }
-        }
-
-        // Use 0 as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
-        bp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
-        bp.applyLut();
-
-        // Create new output image with title.
-        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.duplicate());
-
-        // Make new image window in ImageJ and set the window visible.
-        ImageWindow outputWindow = new ImageWindow(outputImage);
-        outputWindow.setVisible(true);
-    }
-
-    /**
-     * This method displays the about information of the plugin.
-     */
-    public void showAbout() {
-        IJ.showMessage("About Photon Image Processor",
-                "Test help message."
-        );
-    }
-
-    /**
-     * Main method for debugging.
-     *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plugin, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
-     *
-     * @param args unused
-     */
-    public static void main(String[] args) {
-        // set the plugins.dir property to make the plugin appear in the Plugins menu
-        Class<?> clazz = Photon_Image_Processor.class;
-        String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
-        String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
-        System.setProperty("plugins.dir", pluginsDir);
-
-        // start ImageJ
-        new ImageJ();
-
-        // Open the image sequence
-//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
-//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/test_lonneke_kan_weg/100100");
-        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
-        // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-//        IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
-        ImagePlus image = IJ.getImage();
-
-        // Only if you use new ImagePlus(path) to open the file
-        //image.show();
-        // run the plugin
-        IJ.runPlugIn(clazz.getName(), "");
-    }
-}
+//
+//    /**
+//     * Calculate the euclidian distance between two points in two-dimensional space.
+//     *
+//     * @param firstX x coordinate of the first point
+//     * @param firstY y coordinate of the first point
+//     * @param secondX x coordinate of the second point
+//     * @param secondY y coordinate of the second point
+//     * @return euclidian distance between the two points
+//     */
+//    private float getEuclidianDistance(float firstX, float firstY, float secondX, float secondY) {
+//        return (float) Math.sqrt((firstX - secondX) * (firstX - secondX)
+//                + (firstY - secondY) * (firstY - secondY));
+//    }
