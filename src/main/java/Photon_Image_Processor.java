@@ -55,7 +55,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //    private int photonCounter = 0;
     private SilentMaximumFinder maxFind;
     private ProgressBar pb;
-    private Wand wd;
     private float autoThreshold;
 
     private boolean previewing = false;
@@ -65,6 +64,12 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private Label messageArea;
 
     private int nPasses = 0;
+    
+    private int flags = PlugInFilter.DOES_STACKS
+                | PlugInFilter.DOES_16
+                | PlugInFilter.PARALLELIZE_STACKS
+                | PlugInFilter.STACK_REQUIRED
+                | PlugInFilter.FINAL_PROCESSING;
 
     /**
      * Setup method as initializer.
@@ -92,14 +97,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
         
-        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
+//        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
        
 
-        return PlugInFilter.DOES_STACKS
-                | PlugInFilter.DOES_16
-                | PlugInFilter.PARALLELIZE_STACKS
-                | PlugInFilter.STACK_REQUIRED
-                | PlugInFilter.FINAL_PROCESSING;
+        return this.flags;
     }
 
     /**
@@ -129,27 +130,20 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         if (gd.wasCanceled()) {
             return PlugInFilter.DONE;
         }
+        
         this.previewing = false;
-        if (!this.dialogItemChanged(gd, null)) {
+        if (!this.dialogItemChanged(gd, null)) { // HOE KOM JE IN DEZE IF?
             return PlugInFilter.DONE;
         }
-
-        // Get entered values.
-        this.tolerance = gd.getNextNumber();
-        this.method = gd.getNextChoice();
-        this.preprocessing = gd.getNextBoolean();
-        
         
 
         if (this.method.equals("Subpixel resolution")) {
             this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
-            System.out.println("OKE TWEE KEER TWEE");
         } else {
             this.photonCountMatrix = new int[imp.getWidth()][imp.getHeight()];
-            System.out.println("EEN");
         }
 
-        return PlugInFilter.DONE;
+        return this.flags;
     }
 
     /**
@@ -204,8 +198,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Find the photon coordinates.
         rawCoordinates = this.findPhotons(ip);
         
-        
-
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
             PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
@@ -219,7 +211,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
             }
         } else {
-            this.wd = new Wand(ip);
             this.autoThreshold = ip.getAutoThreshold();
             double[] exactCoordinates;
             int x;
@@ -305,18 +296,28 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     private double[] calculateExactCoordinates(int xCor, int yCor, ImageProcessor ip){
         double[] subPixelCoordinates = new double[2];
+        Wand wd = new Wand(ip);
 
         //wd.autoOutline(xCor, yCor, ip.getAutoThreshold(), ip.getMax(), Wand.EIGHT_CONNECTED);
-        this.wd.autoOutline(xCor, yCor, this.autoThreshold, Wand.FOUR_CONNECTED);
-        Rectangle rect = new PolygonRoi(this.wd.xpoints, this.wd.ypoints, this.wd.npoints, Roi.FREEROI).getBounds();
+        wd.autoOutline(xCor, yCor, this.autoThreshold, Wand.FOUR_CONNECTED);
+        Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
 
         subPixelCoordinates[0] = rect.getCenterX();
         subPixelCoordinates[1] = rect.getCenterY();
 
 //        System.out.println("image: "+ip.getSliceNumber());
 //        System.out.println("* oldx: "+xCor+" oldy: "+yCor);
-//        System.out.println("* width: "+pr.getBounds().width+" height: "+pr.getBounds().height);
-//        System.out.println("* x: "+pr.getBounds().getCenterX()+" y: "+pr.getBounds().getCenterY());
+//        System.out.println("* width: "+rect.width+" height: "+rect.height);
+//        System.out.println("* x: "+rect.getCenterX()+" y: "+rect.getCenterY());
+        
+//        System.out.println(xCor - rect.getCenterX());
+//        System.out.println(yCor - rect.getCenterY());
+        
+        if (Math.abs(xCor - rect.getCenterX()) >= 10 || Math.abs(yCor - rect.getCenterY()) >= 10){
+            System.out.println("Hellup! " + (xCor - rect.getCenterX()) + ", " + (yCor - rect.getCenterY()));
+        }
+        
+
         return subPixelCoordinates;
     }
 
@@ -494,8 +495,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Open the image sequence
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
 //        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/meerdaneenkleinbeetje");
-        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/test_lonneke_kan_weg/100100");
-//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/test_lonneke_kan_weg/100100");
+        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
 //        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata/zelfgemaakt");
         // paths Wout
 //        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
