@@ -64,7 +64,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private Label messageArea;
 
     private int nPasses = 0;
-    
+    private int cPasses = 0;
+
     private int flags = PlugInFilter.DOES_STACKS
                 | PlugInFilter.DOES_16
                 | PlugInFilter.PARALLELIZE_STACKS
@@ -96,9 +97,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.setNPasses(this.image.getStackSize());
 
         this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
-        
+
 //        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
-       
 
         return this.flags;
     }
@@ -130,12 +130,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         if (gd.wasCanceled()) {
             return PlugInFilter.DONE;
         }
-        
+
         this.previewing = false;
         if (!this.dialogItemChanged(gd, null)) { // HOE KOM JE IN DEZE IF?
             return PlugInFilter.DONE;
         }
-        
 
         if (this.method.equals("Subpixel resolution")) {
             this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
@@ -184,9 +183,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     @Override
     public void run(ImageProcessor ip) {
-        // Show status and set a progressbar.
-        IJ.showStatus("Processing...");
-        ip.setProgressBar(this.pb);
+        // Show status
+        this.cPasses++;
+        IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses + "...");
 
         Polygon rawCoordinates;
 
@@ -194,10 +193,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         if (this.preprocessing) {
             this.preprocessImage(ip);
         }
-        
+
         // Find the photon coordinates.
         rawCoordinates = this.findPhotons(ip);
-        
+
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
             PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
@@ -218,14 +217,14 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             double[] exactCoordinates;
             int x;
             int y;
-            
-            if (this.method.equals("Accurate")){
+
+            if (this.method.equals("Accurate")) {
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
                     // Loop through all raw coordinates, calculate the exact coordinates,
                     // floor the coordinates, and add them to the count matrix.
                     exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
-                    x = (int)exactCoordinates[0];
-                    y = (int)exactCoordinates[1];
+                    x = (int) exactCoordinates[0];
+                    y = (int) exactCoordinates[1];
                     this.photonCountMatrix[x][y]++;
                 }
             } else {
@@ -234,16 +233,15 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                     // Loop through all raw coordinates, calculate the exact coordinates,
                     // double the coordinates, and add them to the count matrix.
                     exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
-                    x = (int)(exactCoordinates[0] * 2);
-                    y = (int)(exactCoordinates[1] * 2);
+                    x = (int) (exactCoordinates[0] * 2);
+                    y = (int) (exactCoordinates[1] * 2);
                     this.photonCountMatrix[x][y]++;
                 }
             }
-            
         }
 
         // Update the progressbar.
-        this.pb.show(ip.getSliceNumber(), this.nPasses);
+        this.pb.show(this.cPasses, this.nPasses);
     }
 
     /**
@@ -286,10 +284,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // for multiple photons at the same time (-> really weird results)
         Wand wd = new Wand(ip);
         double[] subPixelCoordinates = new double[2];
-        
+
         // Outline the center of the photon using the wand tool
         wd.autoOutline(xCor, yCor, this.autoThreshold, Wand.FOUR_CONNECTED);
-        
+
         // Draw a rectangle around the outline
         Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
 
@@ -302,14 +300,13 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        System.out.println("* old x: "+xCor+" old y: "+yCor);
 //        System.out.println("* width: "+rect.width+" height: "+rect.height);
 //        System.out.println("* new x: "+rect.getCenterX()+" new y: "+rect.getCenterY());
-        
+
 //        System.out.println(xCor - rect.getCenterX());
 //        System.out.println(yCor - rect.getCenterY());
-        
+
 //        if (Math.abs(xCor - rect.getCenterX()) >= 10 || Math.abs(yCor - rect.getCenterY()) >= 10){
 //            System.out.println("Hellup! " + (xCor - rect.getCenterX()) + ", " + (yCor - rect.getCenterY()));
 //        }
-        
 
         return subPixelCoordinates;
     }
