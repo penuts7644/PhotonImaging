@@ -29,8 +29,8 @@ import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
-import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 import java.awt.AWTEvent;
 import java.awt.Label;
 import java.awt.Polygon;
@@ -55,7 +55,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //    private int photonCounter = 0;
     private SilentMaximumFinder maxFind;
     private ProgressBar pb;
-    private float autoThreshold;
 
     private boolean previewing = false;
     private double tolerance = 100;
@@ -67,10 +66,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private int cPasses = 0;
 
     private int flags = PlugInFilter.DOES_STACKS
-                | PlugInFilter.DOES_16
-                | PlugInFilter.PARALLELIZE_STACKS
-                | PlugInFilter.STACK_REQUIRED
-                | PlugInFilter.FINAL_PROCESSING;
+            | PlugInFilter.DOES_8G
+            | PlugInFilter.DOES_16
+            | PlugInFilter.PARALLELIZE_STACKS
+            | PlugInFilter.STACK_REQUIRED
+            | PlugInFilter.FINAL_PROCESSING;
 
     /**
      * Setup method as initializer.
@@ -91,15 +91,14 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             return PlugInFilter.DONE;
         }
 
-        this.image = imp;
-
-        this.maxFind = new SilentMaximumFinder();
-        this.setNPasses(this.image.getStackSize());
-
-        this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
-
+        // Check if image open, else quit.
+        if (imp != null) {
+            this.image = imp;
+            this.maxFind = new SilentMaximumFinder();
+            this.setNPasses(this.image.getStackSize());
+            this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
+        }
 //        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
-
         return this.flags;
     }
 
@@ -115,11 +114,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
-        GenericDialog gd = new GenericDialog("Photon Image Processor");
+        GenericDialog gd = new GenericDialog("Process Photon Images");
 
         // Add fields to dialog.
         gd.addNumericField("Noise tolerance", this.tolerance, 0);
-        gd.addChoice("Method", new String[] {"Fast", "Accurate", "Subpixel resolution"}, "Fast");
+        gd.addChoice("Method", new String[]{"Fast", "Accurate", "Subpixel resolution"}, "Fast");
         gd.addCheckbox("Automatic preprocessing", true);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
         gd.addMessage("    "); //space for number of maxima
@@ -185,7 +184,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     public void run(ImageProcessor ip) {
         // Show status
         this.cPasses++;
-        IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses + "...");
+        IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses);
 
         Polygon rawCoordinates;
 
@@ -213,7 +212,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         } else {
             // Calculating the auto threshold takes relatively long
             // so this function is only called once per image (not for every photon)
-            this.autoThreshold = ip.getAutoThreshold();
+            float autoThreshold = ip.getAutoThreshold();
             double[] exactCoordinates;
             int x;
             int y;
@@ -222,7 +221,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
                     // Loop through all raw coordinates, calculate the exact coordinates,
                     // floor the coordinates, and add them to the count matrix.
-                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
+                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
                     x = (int) exactCoordinates[0];
                     y = (int) exactCoordinates[1];
                     this.photonCountMatrix[x][y]++;
@@ -232,7 +231,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
                     // Loop through all raw coordinates, calculate the exact coordinates,
                     // double the coordinates, and add them to the count matrix.
-                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], ip);
+                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
                     x = (int) (exactCoordinates[0] * 2);
                     y = (int) (exactCoordinates[1] * 2);
                     this.photonCountMatrix[x][y]++;
@@ -279,14 +278,14 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param ip the imageprocessor
      * @return the new calculated coordinates
      */
-    private double[] calculateExactCoordinates(int xCor, int yCor, ImageProcessor ip){
+    private double[] calculateExactCoordinates(int xCor, int yCor, float autoThreshold, ImageProcessor ip) {
         // A new wand MUST BE created here, otherwise the same wand object might be used
         // for multiple photons at the same time (-> really weird results)
         Wand wd = new Wand(ip);
         double[] subPixelCoordinates = new double[2];
 
         // Outline the center of the photon using the wand tool
-        wd.autoOutline(xCor, yCor, this.autoThreshold, Wand.FOUR_CONNECTED);
+        wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
 
         // Draw a rectangle around the outline
         Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
@@ -300,26 +299,22 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 //        System.out.println("* old x: "+xCor+" old y: "+yCor);
 //        System.out.println("* width: "+rect.width+" height: "+rect.height);
 //        System.out.println("* new x: "+rect.getCenterX()+" new y: "+rect.getCenterY());
-
 //        System.out.println(xCor - rect.getCenterX());
 //        System.out.println(yCor - rect.getCenterY());
-
 //        if (Math.abs(xCor - rect.getCenterX()) >= 10 || Math.abs(yCor - rect.getCenterY()) >= 10){
 //            System.out.println("Hellup! " + (xCor - rect.getCenterX()) + ", " + (yCor - rect.getCenterY()));
 //        }
-
         return subPixelCoordinates;
     }
-
 
     /**
      * This method generates and displays the final image from the photonCountMatrix.
      */
     private void createOutputImage() {
 
-        // Create new ByteProcessor for output image with matrix data and it's width and height.
-        ByteProcessor bp = new ByteProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
-        bp.setIntArray(this.photonCountMatrix);
+        // Create new ShortProcessor for output image with matrix data and it's width and height.
+        ShortProcessor sp = new ShortProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
+        sp.setIntArray(this.photonCountMatrix);
 
         // Add the amount of different values in matrix.
         List<Integer> diffMatrixCount = new ArrayList<>();
@@ -331,12 +326,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             }
         }
 
-        // Use 0 as min and max value as size from matrix minus two outer values for for 0-255 grayscale pixel mapping.
-        bp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
-        bp.applyLut();
+        // Use 0 as min and largest value in the matrix as max for grayscale mapping.
+        sp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
 
         // Create new output image with title.
-        ImagePlus outputImage = new ImagePlus("Photon Image Processor - Output", bp.duplicate());
+        ImagePlus outputImage = new ImagePlus("Photon Count Image", sp);
 
         // Make new image window in ImageJ and set the window visible.
         ImageWindow outputWindow = new ImageWindow(outputImage);
@@ -384,7 +378,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         IJ.runPlugIn(clazz.getName(), "");
     }
 }
-
 
 // OLD EXACT MIDPOINT CALCULATOR
 // Probably won't be used anymore because it is very slow...
