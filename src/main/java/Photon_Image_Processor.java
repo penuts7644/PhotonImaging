@@ -341,7 +341,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * This method displays the about information of the plugin.
      */
     public void showAbout() {
-        IJ.showMessage("About Photon Image Processor",
+        IJ.showMessage("About Process Photon Images",
                 "Test help message."
         );
     }

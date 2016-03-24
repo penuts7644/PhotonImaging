@@ -19,13 +19,13 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
-import ij.gui.ImageWindow;
 import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -44,6 +44,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
     private boolean previewing = false;
     private int threshold = 0;
+    private boolean inverted = false;
 
     private int nPasses = 0;
 
@@ -61,17 +62,22 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      */
     @Override
     public int setup(String argument, ImagePlus imp) {
-
-        // Check if image open, else quit.
-        if (imp != null && imp.getSlice() == 1 && imp.getStackSize() == 1) {
-            this.image = imp;
-            this.nPasses = this.image.getWidth() * this.image.getHeight();
-            System.out.println(this.nPasses);
-            this.setMatrixCounts(this.image.getProcessor());
-            this.maxMatrixCount = this.photonCountMatrixSet.size();
+        if (argument.equals("about")) {
+            this.showAbout();
+            return PlugInFilter.DONE;
         }
 
-//        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
+        // Check if image open, else quit.
+        if (imp != null && imp.getNSlices() == 1) {
+            this.image = imp;
+            this.nPasses = this.image.getWidth() * this.image.getHeight();
+            this.setMatrixCounts(this.image.getProcessor());
+            this.maxMatrixCount = this.photonCountMatrixSet.size() - 1;
+            System.out.println(this.photonCountMatrixSet.toString());
+        } else {
+            return PlugInFilter.DONE;
+        }
+
         return this.flags;
     }
 
@@ -87,10 +93,11 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      */
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
-        GenericDialog gd = new GenericDialog("Photon Image Processor");
+        GenericDialog gd = new GenericDialog("Threshold Photon Count");
 
         // Add fields to dialog.
-        gd.addSlider("Threshold", 0, this.maxMatrixCount, 0);
+        gd.addSlider("Threshold", 1, this.maxMatrixCount, 1);
+        gd.addCheckbox("Inverted", this.inverted);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
         gd.addDialogListener(this);
         this.previewing = true;
@@ -117,6 +124,12 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     @Override
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.threshold = (int) gd.getNextNumber();
+        this.inverted = gd.getNextBoolean();
+        if (this.threshold > this.maxMatrixCount) {
+            this.threshold = this.maxMatrixCount;
+        } else if (this.threshold < 0) {
+            this.threshold = 0;
+        }
 
         return (!gd.invalidNumber());
     }
@@ -155,7 +168,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         this.photonCountMatrix = ip.getIntArray();
 
         // Add the amount of different values in matrix.
-        List<Integer> diffMatrixCount = new ArrayList<>();
+        List<Integer> diffMatrixCount = new ArrayList();
         for (int[] photonCountMatrix1 : this.photonCountMatrix) {
             for (int photonCountMatrix2 : photonCountMatrix1) {
                 if (!diffMatrixCount.contains(photonCountMatrix2)) {
@@ -164,6 +177,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
             }
         }
 
+        Collections.sort(diffMatrixCount);
         this.photonCountMatrixSet = diffMatrixCount;
     }
 
@@ -172,9 +186,23 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      */
     private void setPixelValue(int xCor, int yCor, ImageProcessor ip) {
 
-        if (ip.getPixelValue(xCor, yCor) <= this.photonCountMatrixSet.get(this.threshold)) {
+        boolean isPixelLower = ip.getPixelValue(xCor, yCor) <= this.photonCountMatrixSet.get(this.threshold);
+        boolean isPixelUpper = ip.getPixelValue(xCor, yCor) >= this.photonCountMatrixSet.get(this.threshold);
+
+        if (this.inverted && isPixelUpper) {
+            ip.putPixelValue(xCor, yCor, 0);
+        } else if (!this.inverted && isPixelLower) {
             ip.putPixelValue(xCor, yCor, 0);
         }
+    }
+
+    /**
+     * This method displays the about information of the plugin.
+     */
+    public void showAbout() {
+        IJ.showMessage("About Threshold Photon Count",
+                "Test help message."
+        );
     }
 
     /**
