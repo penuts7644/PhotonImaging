@@ -78,15 +78,18 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * Setup method is the initializer for this class and will always be ran first. Arguments necessary can be given
      * here. Setup method needs to be overridden.
      *
-     * @see ij.plugin.filter.PlugInFilter#setup(java.lang.String, ij.ImagePlus)
+     * @param arg String telling setup what to do.
+     * @param imp ImagePlus containing the displayed stack/image.
      * @return None if help shown, else plugin does gray 16-bit stacks and parallel.
      */
     @Override
-    public int setup(String argument, ImagePlus imp) {
-        if (argument.equals("about")) {
+    public int setup(String arg, ImagePlus imp) {
+
+        // If arg is about, display help message. final for calling setup when run completed.
+        if (arg.equals("about")) {
             this.showAbout();
             return PlugInFilter.DONE;
-        } else if (argument.equals("final")) {
+        } else if (arg.equals("final")) {
             this.createOutputImage();
             return PlugInFilter.DONE;
         }
@@ -98,7 +101,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.setNPasses(this.image.getStackSize());
             this.pb = new ProgressBar(this.image.getCanvas().getWidth(), this.image.getCanvas().getHeight());
         }
-//        this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
+
+        // Return options.
         return this.flags;
     }
 
@@ -110,7 +114,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param imp The ImagePlus.
      * @param command String containing the command.
      * @param pfr The PlugInFilterRunner necessary for live preview.
-     * @return int for cancel or ok.
+     * @return integer for cancel or oke.
      */
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
@@ -124,17 +128,21 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         gd.addMessage("    "); //space for number of maxima
         this.messageArea = (Label) gd.getMessage();
         gd.addDialogListener(this);
+
+        // Set previewing true and show the dialog.
         this.previewing = true;
         gd.showDialog();
         if (gd.wasCanceled()) {
             return PlugInFilter.DONE;
         }
 
+        // Set previewing false when oke pressed.
         this.previewing = false;
-        if (!this.dialogItemChanged(gd, null)) { // HOE KOM JE IN DEZE IF?
+        if (!this.dialogItemChanged(gd, null)) {
             return PlugInFilter.DONE;
         }
 
+        // If subpixel resolution selected, make matrix twice the size.
         if (this.method.equals("Subpixel resolution")) {
             this.photonCountMatrix = new int[imp.getWidth() * 2][imp.getHeight() * 2];
         } else {
@@ -148,7 +156,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * This method changes the preview if user has entered a new value.
      *
      * @param gd The dialog window.
-     * @param e A AWTEvent.
+     * @param e An AWTEvent.
      * @return boolean false if one or more field are not correct.
      */
     @Override
@@ -156,6 +164,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.tolerance = gd.getNextNumber();
         this.method = gd.getNextChoice();
         this.preprocessing = gd.getNextBoolean();
+
+        // Check if given arguments are correct.
         if (this.tolerance < 0) {
             this.tolerance = 0;
         }
@@ -166,6 +176,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         return (!gd.invalidNumber());
     }
 
+    /**
+     * This method tells the the runner the amount of runs get executed.
+     *
+     * @param nPasses integer with the amount of runs to be called.
+     */
     @Override
     public void setNPasses(int nPasses) {
         this.nPasses = nPasses;
@@ -244,8 +259,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * Preprocess the images. For instance: despeckling the images to prevent false positives.
+     * Preprocess the images.
+     * For instance: despeckling the images to prevent false positives.
      *
+     * @param ip image processor
      */
     private void preprocessImage(ImageProcessor ip) {
         // Perform 'despeckle' using RankFilters.
@@ -256,6 +273,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     /**
      * Find the photons in the current image using MaximumFinder, and return their approximate coordinates.
      *
+     * @param ip image processor
      */
     private Polygon findPhotons(ImageProcessor ip) {
         int[][] coordinates;
@@ -342,7 +360,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     public void showAbout() {
         IJ.showMessage("About Process Photon Images",
-                "Test help message."
+                "Test help message for Process Photon Images class."
         );
     }
 

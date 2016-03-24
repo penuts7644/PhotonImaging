@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * Image_Thresholder
- * 
+ *
  * Description comes here.
  *
  * @author Lonneke Scheffer & Wout van Helvoirt
@@ -57,12 +57,15 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * Setup method is the initializer for this class and will always be ran first. Arguments necessary can be given
      * here. Setup method needs to be overridden.
      *
-     * @see ij.plugin.filter.PlugInFilter#setup(java.lang.String, ij.ImagePlus)
-     * @return None if help shown, else plugin does gray 16-bit stacks and parallel.
+     * @param arg String telling setup what to do.
+     * @param imp ImagePlus containing the displayed stack/image.
+     * @return None if help shown, else plugin does gray 8-bit and 16-bit image.
      */
     @Override
-    public int setup(String argument, ImagePlus imp) {
-        if (argument.equals("about")) {
+    public int setup(String arg, ImagePlus imp) {
+
+        // If arg is about, display help message.
+        if (arg.equals("about")) {
             this.showAbout();
             return PlugInFilter.DONE;
         }
@@ -78,6 +81,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
             return PlugInFilter.DONE;
         }
 
+        // Return options.
         return this.flags;
     }
 
@@ -89,7 +93,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @param imp The ImagePlus.
      * @param command String containing the command.
      * @param pfr The PlugInFilterRunner necessary for live preview.
-     * @return int for cancel or ok.
+     * @return integer for cancel or oke.
      */
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
@@ -100,14 +104,17 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         gd.addCheckbox("Inverted", this.inverted);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
         gd.addDialogListener(this);
+
+        // Set previewing true and show the dialog.
         this.previewing = true;
         gd.showDialog();
         if (gd.wasCanceled()) {
             return PlugInFilter.DONE;
         }
 
+        // Set previewing false when oke pressed.
         this.previewing = false;
-        if (!this.dialogItemChanged(gd, null)) { // HOE KOM JE IN DEZE IF?
+        if (!this.dialogItemChanged(gd, null)) {
             return PlugInFilter.DONE;
         }
 
@@ -118,13 +125,15 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * This method changes the preview if user has entered a new value.
      *
      * @param gd The dialog window.
-     * @param e A AWTEvent.
+     * @param e An AWTEvent.
      * @return boolean false if one or more field are not correct.
      */
     @Override
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.threshold = (int) gd.getNextNumber();
         this.inverted = gd.getNextBoolean();
+
+        // Check if given arguments are correct.
         if (this.threshold > this.maxMatrixCount) {
             this.threshold = this.maxMatrixCount;
         } else if (this.threshold < 0) {
@@ -134,6 +143,11 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         return (!gd.invalidNumber());
     }
 
+    /**
+     * This method tells the the runner the amount of runs get executed.
+     *
+     * @param nPasses integer with the amount of runs to be called.
+     */
     @Override
     public void setNPasses(int nPasses) {
         this.nPasses = nPasses;
@@ -153,6 +167,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         // Show status
         IJ.showStatus("Processing...");
 
+        // For each pixel, set the new pixel value.
         for (int w = 0; w < ip.getWidth(); w++) {
             for (int h = 0; h < ip.getHeight(); h++) {
                 this.setPixelValue(w, h, ip);
@@ -162,6 +177,8 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
     /**
      * This method generates an 2D array of the image as well as a set of values.
+     *
+     * @param ip image processor
      */
     private void setMatrixCounts(ImageProcessor ip) {
 
@@ -182,13 +199,19 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     }
 
     /**
-     * This method generates and displays the final image from the photonCountMatrix.
+     * This method sets the given pixel value to zero.
+     *
+     * @param xCor x position of the pixel.
+     * @param yCor y position of the pixel.
+     * @param ip image processor
      */
     private void setPixelValue(int xCor, int yCor, ImageProcessor ip) {
 
+        // Check if pixel value higher or lower than the corresponding value in the list.
         boolean isPixelLower = ip.getPixelValue(xCor, yCor) <= this.photonCountMatrixSet.get(this.threshold);
         boolean isPixelUpper = ip.getPixelValue(xCor, yCor) >= this.photonCountMatrixSet.get(this.threshold);
 
+        // If inverted is true, remove light value. If false, remove dark value.
         if (this.inverted && isPixelUpper) {
             ip.putPixelValue(xCor, yCor, 0);
         } else if (!this.inverted && isPixelLower) {
@@ -201,7 +224,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      */
     public void showAbout() {
         IJ.showMessage("About Threshold Photon Count",
-                "Test help message."
+                "Test help message for Threshold Photon Count class."
         );
     }
 
