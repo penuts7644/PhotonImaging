@@ -76,7 +76,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
             this.nPasses = this.image.getWidth() * this.image.getHeight();
             this.setMatrixCounts(this.image.getProcessor());
             this.maxMatrixCount = this.photonCountMatrixSet.size() - 1;
-            System.out.println(this.photonCountMatrixSet.toString());
+            //System.out.println(this.photonCountMatrixSet.toString());
         } else {
             return PlugInFilter.DONE;
         }
@@ -188,7 +188,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         List<Integer> diffMatrixCount = new ArrayList();
         for (int[] photonCountMatrix1 : this.photonCountMatrix) {
             for (int photonCountMatrix2 : photonCountMatrix1) {
-                if (!diffMatrixCount.contains(photonCountMatrix2)) {
+                if (!diffMatrixCount.contains(photonCountMatrix2) && photonCountMatrix2 != 0) {
                     diffMatrixCount.add(photonCountMatrix2);
                 }
             }
