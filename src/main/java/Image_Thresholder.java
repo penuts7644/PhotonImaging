@@ -81,6 +81,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
             this.sliderSize = this.uniquePixelValues.length - 1;
             //System.out.println(this.photonCountMatrixSet.toString());
         } else {
+            IJ.showMessage("No Image", "There is no image open.");
             return PlugInFilter.DONE;
         }
 
