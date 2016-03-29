@@ -26,7 +26,10 @@ import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Image_Thresholder
@@ -38,13 +41,12 @@ import java.util.List;
 public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
     protected ImagePlus image;
-    private int[][] photonCountMatrix;
-    private List<Integer> photonCountMatrixSet;
-    private int maxMatrixCount = 0;
+    private int[][] pixelValueMatrix;
+    private Integer[] uniquePixelValues;
+    private int sliderSize = 0;
 
     private boolean previewing = false;
     private int threshold = 0;
-    private boolean inverted = false;
 
     private int nPasses = 0;
 
@@ -74,8 +76,9 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         if (imp != null && imp.getNSlices() == 1) {
             this.image = imp;
             this.nPasses = this.image.getWidth() * this.image.getHeight();
-            this.setMatrixCounts(this.image.getProcessor());
-            this.maxMatrixCount = this.photonCountMatrixSet.size() - 1;
+            this.pixelValueMatrix = this.image.getProcessor().getIntArray();
+            this.getUniquePixelValues();
+            this.sliderSize = this.uniquePixelValues.length - 1;
             //System.out.println(this.photonCountMatrixSet.toString());
         } else {
             return PlugInFilter.DONE;
@@ -100,20 +103,19 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         GenericDialog gd = new GenericDialog("Threshold Photon Count");
 
         // Add fields to dialog.
-        gd.addSlider("Threshold", 1, this.maxMatrixCount, 1);
-        gd.addCheckbox("Inverted", this.inverted);
+        gd.addSlider("Threshold", 1, this.sliderSize, 1);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
         gd.addDialogListener(this);
 
-        // Set previewing true and show the dialog.
+        // previewing is true while showing the dialog
         this.previewing = true;
         gd.showDialog();
         if (gd.wasCanceled()) {
             return PlugInFilter.DONE;
         }
-
-        // Set previewing false when oke pressed.
         this.previewing = false;
+        
+        // check whether the user has changed the items
         if (!this.dialogItemChanged(gd, null)) {
             return PlugInFilter.DONE;
         }
@@ -122,7 +124,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     }
 
     /**
-     * This method changes the preview if user has entered a new value.
+     * This method checks whether the user has changed the input fields, and saves the new values.
      *
      * @param gd The dialog window.
      * @param e An AWTEvent.
@@ -131,11 +133,10 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     @Override
     public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
         this.threshold = (int) gd.getNextNumber();
-        this.inverted = gd.getNextBoolean();
 
         // Check if given arguments are correct.
-        if (this.threshold > this.maxMatrixCount) {
-            this.threshold = this.maxMatrixCount;
+        if (this.threshold > this.sliderSize) {
+            this.threshold = this.sliderSize;
         } else if (this.threshold < 0) {
             this.threshold = 0;
         }
@@ -154,9 +155,30 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     }
 
     /**
+     * This method creates a set of pixel values (excluding zero) that are in the pixel value matrix.
+     *
+     * @param ip image processor
+     */
+    private void getUniquePixelValues() {
+        SortedSet pixelValueSet = new TreeSet();
+
+        // Add the amount of different values in matrix.
+        for (int[] row : this.pixelValueMatrix) {
+            for (int value : row) {
+                pixelValueSet.add(value);
+            }
+        }
+        
+        // remove value zero from the matrix
+        pixelValueSet.remove(0);
+        
+        this.uniquePixelValues = (Integer[]) pixelValueSet.toArray(new Integer[0]);
+    }
+    
+    /**
      * Executed method when selected.
      *
-     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
+     * Collections.sort(diffMatrixCount);Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
      * method needs to be overridden.
      *
      * @param ip image processor
@@ -166,37 +188,20 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     public void run(ImageProcessor ip) {
         // Show status
         IJ.showStatus("Processing...");
+        
+        int thresholdValue = this.uniquePixelValues[this.threshold];
+        
+        
 
         // For each pixel, set the new pixel value.
-        for (int w = 0; w < ip.getWidth(); w++) {
-            for (int h = 0; h < ip.getHeight(); h++) {
-                this.setPixelValue(w, h, ip);
+        for (int width = 0; width < ip.getWidth(); width++) {
+            for (int height = 0; height < ip.getHeight(); height++) {
+                this.setPixelValue(width, height, ip, thresholdValue);
             }
         }
     }
 
-    /**
-     * This method generates an 2D array of the image as well as a set of values.
-     *
-     * @param ip image processor
-     */
-    private void setMatrixCounts(ImageProcessor ip) {
 
-        this.photonCountMatrix = ip.getIntArray();
-
-        // Add the amount of different values in matrix.
-        List<Integer> diffMatrixCount = new ArrayList();
-        for (int[] photonCountMatrix1 : this.photonCountMatrix) {
-            for (int photonCountMatrix2 : photonCountMatrix1) {
-                if (!diffMatrixCount.contains(photonCountMatrix2) && photonCountMatrix2 != 0) {
-                    diffMatrixCount.add(photonCountMatrix2);
-                }
-            }
-        }
-
-        Collections.sort(diffMatrixCount);
-        this.photonCountMatrixSet = diffMatrixCount;
-    }
 
     /**
      * This method sets the given pixel value to zero.
@@ -205,16 +210,9 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @param yCor y position of the pixel.
      * @param ip image processor
      */
-    private void setPixelValue(int xCor, int yCor, ImageProcessor ip) {
-
-        // Check if pixel value higher or lower than the corresponding value in the list.
-        boolean isPixelLower = ip.getPixelValue(xCor, yCor) <= this.photonCountMatrixSet.get(this.threshold);
-        boolean isPixelUpper = ip.getPixelValue(xCor, yCor) >= this.photonCountMatrixSet.get(this.threshold);
-
-        // If inverted is true, remove light value. If false, remove dark value.
-        if (this.inverted && isPixelUpper) {
-            ip.putPixelValue(xCor, yCor, 0);
-        } else if (!this.inverted && isPixelLower) {
+    private void setPixelValue(int xCor, int yCor, ImageProcessor ip, int thresholdValue) {
+        // set all pixels with a value under the threshold value to 0
+        if (ip.getPixelValue(xCor, yCor) <= thresholdValue) {
             ip.putPixelValue(xCor, yCor, 0);
         }
     }
