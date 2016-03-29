@@ -168,30 +168,29 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
                 pixelValueSet.add(value);
             }
         }
-        
-        // remove value zero from the matrix
+
+        // Remove value zero from the matrix.
         pixelValueSet.remove(0);
-        
+
         this.uniquePixelValues = (Integer[]) pixelValueSet.toArray(new Integer[0]);
     }
-    
+
     /**
      * Executed method when selected.
      *
-     * Collections.sort(diffMatrixCount);Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
+     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
      * method needs to be overridden.
      *
      * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
-    public void run(ImageProcessor ip) {
-        // Show status
+    public void run(final ImageProcessor ip) {
+        // Show status.
         IJ.showStatus("Processing...");
-        
+
+        // Get threshold value.
         int thresholdValue = this.uniquePixelValues[this.threshold];
-        
-        
 
         // For each pixel, set the new pixel value.
         for (int width = 0; width < ip.getWidth(); width++) {
@@ -206,12 +205,13 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     /**
      * This method sets the given pixel value to zero.
      *
-     * @param xCor x position of the pixel.
-     * @param yCor y position of the pixel.
-     * @param ip image processor
+     * @param xCor X position of the pixel.
+     * @param yCor Y position of the pixel.
+     * @param ip Image processor.
+     * @param thresholdValue Threshold value selected by user.
      */
-    private void setPixelValue(int xCor, int yCor, ImageProcessor ip, int thresholdValue) {
-        // set all pixels with a value under the threshold value to 0
+    private void setPixelValue(final int xCor, final int yCor, final ImageProcessor ip, final int thresholdValue) {
+        // Set all pixels with a value under the threshold value to 0.
         if (ip.getPixelValue(xCor, yCor) <= thresholdValue) {
             ip.putPixelValue(xCor, yCor, 0);
         }
@@ -234,7 +234,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      *
      * @param args unused
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         // set the plugins.dir property to make the plugin appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
@@ -245,15 +245,14 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         new ImageJ();
 
         // Open the image sequence
-//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-//        IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
+        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
+        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
         ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
-        //image.show();
+        // image.show();
         // run the plugin
         IJ.runPlugIn(clazz.getName(), "");
     }
