@@ -24,10 +24,6 @@ import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -40,7 +36,7 @@ import java.util.TreeSet;
  */
 public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
-    protected ImagePlus image;
+//    protected ImagePlus image;
     private int[][] pixelValueMatrix;
     private Integer[] uniquePixelValues;
     private int sliderSize = 0;
@@ -66,21 +62,19 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     @Override
     public int setup(String arg, ImagePlus imp) {
 
-        // If arg is about, display help message.
+        // If arg is about, display help message and quit.
         if (arg.equals("about")) {
             this.showAbout();
             return PlugInFilter.DONE;
         }
 
-        // Check if image open, else quit.
         if (imp != null && imp.getNSlices() == 1) {
-            this.image = imp;
-            this.nPasses = this.image.getWidth() * this.image.getHeight();
-            this.pixelValueMatrix = this.image.getProcessor().getIntArray();
+            // I there is one image open, get the pixel value information from the image.
+            this.pixelValueMatrix = imp.getProcessor().getIntArray();
             this.getUniquePixelValues();
             this.sliderSize = this.uniquePixelValues.length - 1;
-            //System.out.println(this.photonCountMatrixSet.toString());
         } else {
+            // If there are more or less than one image open, quit.
             IJ.showMessage("No Image", "There is no image open.");
             return PlugInFilter.DONE;
         }
@@ -163,15 +157,15 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     private void getUniquePixelValues() {
         SortedSet pixelValueSet = new TreeSet();
 
-        // Add the amount of different values in matrix.
+        // Always add zero (otherwise if there is no zero in the image, the lowest value is skipped).
+        pixelValueSet.add(0);
+
+        // Add the all values of the matrix to the set.
         for (int[] row : this.pixelValueMatrix) {
             for (int value : row) {
                 pixelValueSet.add(value);
             }
         }
-
-        // Remove value zero from the matrix.
-        pixelValueSet.remove(0);
 
         this.uniquePixelValues = (Integer[]) pixelValueSet.toArray(new Integer[0]);
     }
