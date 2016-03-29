@@ -118,7 +118,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     /**
      * The showDialog method will be ran after the setup and creates the dialog window and shows it.
      *
-     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run executed one time).
+     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run is executed once).
      *
      * @param imp The ImagePlus.
      * @param command String containing the command.
@@ -220,51 +220,56 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
-            PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
-            image.setRoi(p);
-            this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
+            this.runPreview(rawCoordinates);
         } else if (this.method.equals("Fast")) {
-            for (int i = 0; i < rawCoordinates.npoints; i++) {
-
-                // Loop through all raw coordinates and add them to the count matrix.
-                this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
-            }
+            this.processPhotonsFast(rawCoordinates);
         } else {
-
             // Calculating the auto threshold takes relatively long so this function is only called once per image.
             float autoThreshold = ip.getAutoThreshold();
-            double[] exactCoordinates;
-            int x;
-            int y;
 
             if (this.method.equals("Accurate")) {
-                for (int i = 0; i < rawCoordinates.npoints; i++) {
-
-                    // Loop through all raw coordinates, calculate the exact coordinates,
-                    // floor the coordinates, and add them to the count matrix.
-                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
-                    x = (int) exactCoordinates[0];
-                    y = (int) exactCoordinates[1];
-                    this.photonCountMatrix[x][y]++;
-                }
-            } else {
-
-                // this.method equals "Subpixel resolution"
-                for (int i = 0; i < rawCoordinates.npoints; i++) {
-
-                    // Loop through all raw coordinates, calculate the exact coordinates,
-                    // double the coordinates, and add them to the count matrix.
-                    exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
-                    x = (int) (exactCoordinates[0] * 2);
-                    y = (int) (exactCoordinates[1] * 2);
-                    this.photonCountMatrix[x][y]++;
-                }
+                processPhotonsAccurate(ip, rawCoordinates, autoThreshold);
+            } else { // this.method equals "Subpixel resolution"
+                processPhotonsSubPixel(ip, rawCoordinates, autoThreshold);
             }
         }
 
         // Update the progressbar.
         this.pb.show(this.cPasses, this.nPasses);
     }
+    
+    
+    private void runPreview(Polygon rawCoordinates) {
+        PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
+        this.image.setRoi(p);
+        this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
+    }
+    
+    private void processPhotonsFast(Polygon rawCoordinates) {
+        for (int i = 0; i < rawCoordinates.npoints; i++) {
+            // Loop through all raw coordinates and add them to the count matrix.
+            this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
+        }
+    }
+    
+    private void processPhotonsAccurate(ImageProcessor ip, Polygon rawCoordinates, float autoThreshold) {
+        for (int i = 0; i < rawCoordinates.npoints; i++) {
+            // Loop through all raw coordinates, calculate the exact coordinates,
+            // floor the coordinates, and add them to the count matrix.
+            double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
+            this.photonCountMatrix[(int) exactCoordinates[0]][(int) exactCoordinates[1]]++;
+        }
+    }
+    
+    private void processPhotonsSubPixel(ImageProcessor ip, Polygon rawCoordinates, float autoThreshold) {
+        for (int i = 0; i < rawCoordinates.npoints; i++) {
+            // Loop through all raw coordinates, calculate the exact coordinates,
+            // double the coordinates, and add them to the count matrix.
+            double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
+            this.photonCountMatrix[(int) (exactCoordinates[0] * 2)][(int) (exactCoordinates[1] * 2)]++;
+        }
+    }
+    
 
     /**
      * Preprocess the images. For instance: despeckling the images to prevent false positives.

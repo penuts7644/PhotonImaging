@@ -30,7 +30,8 @@ import java.util.TreeSet;
 /**
  * Image_Thresholder
  *
- * Description comes here.
+ * This plug-in can be used to filter noise from the output image of Photon_Image_Processor.
+ * The pixels darker than the given threshold value are set to black.
  *
  * @author Lonneke Scheffer & Wout van Helvoirt
  */
@@ -89,7 +90,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     /**
      * The showDialog method will be ran after the setup and creates the dialog window and shows it.
      *
-     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run executed one time).
+     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run is executed once).
      *
      * @param imp The ImagePlus.
      * @param command String containing the command.
