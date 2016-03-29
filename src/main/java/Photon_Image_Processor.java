@@ -259,7 +259,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private void processPhotonsFast(final Polygon rawCoordinates) {
         // Loop through all raw coordinates and add them to the count matrix.
         for (int i = 0; i < rawCoordinates.npoints; i++) {
-            this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
+            this.photonCountMatrix[rawCoordinates.xpoints[i]]
+                                  [rawCoordinates.ypoints[i]]++;
         }
     }
 
@@ -271,12 +272,16 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
      * @param autoThreshold the auto threshold of the ImageProcessor
      */
-    private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates, final float autoThreshold) {
+    private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates,
+                                        final float autoThreshold) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // floor the coordinates, and add them to the count matrix.
-            double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
-            this.photonCountMatrix[(int) exactCoordinates[0]][(int) exactCoordinates[1]]++;
+            double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i],
+                                                                       rawCoordinates.ypoints[i],
+                                                                       autoThreshold, ip);
+            this.photonCountMatrix[(int) exactCoordinates[0]]
+                                  [(int) exactCoordinates[1]]++;
         }
     }
 
@@ -288,12 +293,17 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
      * @param autoThreshold the auto threshold of the ImageProcessor
      */
-    private void processPhotonsSubPixel(ImageProcessor ip, Polygon rawCoordinates, float autoThreshold) {
+    private void processPhotonsSubPixel(final ImageProcessor ip, final Polygon rawCoordinates,
+                                        final float autoThreshold) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // double the coordinates, and add them to the count matrix.
-            double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
-            this.photonCountMatrix[(int) (exactCoordinates[0] * 2)][(int) (exactCoordinates[1] * 2)]++;
+            double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i],
+                                                                       rawCoordinates.ypoints[i],
+                                                                       autoThreshold,
+                                                                       ip);
+            this.photonCountMatrix[(int) (exactCoordinates[0] * 2)]
+                                  [(int) (exactCoordinates[1] * 2)]++;
         }
     }
 
@@ -337,7 +347,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param ip Image processor.
      * @return The new calculated coordinates.
      */
-    private double[] calculateExactCoordinates(final int xCor, final int yCor, final float autoThreshold, final ImageProcessor ip) {
+    private double[] calculateExactCoordinates(final int xCor, final int yCor,
+                                               final float autoThreshold, final ImageProcessor ip) {
         // Wand MUST BE created here, otherwise wand object might be used for multiple photons at the same time.
         Wand wd = new Wand(ip);
         double[] subPixelCoordinates = new double[2];
@@ -390,11 +401,12 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     public void showAbout() {
         IJ.showMessage("About Process Photon Images",
-            "This class is able to process a stack containing single photon events data and create a combined hi-res image. "
-            + "Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon "
-            + "has a center that can be calculated in a fast or a more accurate way. There are two accurate calculations available. "
-            + "One to create a higher resolution image with four times the amount of pixels (sub-pixel resolution) or one with "
-            + "normal resolution. Photons are being counted and mapped to the correct pixel values to create a 16-bit image."
+            "This class is able to process a stack containing single photon events data and create a combined hi-res "
+            + "image. Each light point within the image (based on user given tolerance value) is being processed as "
+            + "photon. Each photon has a center that can be calculated in a fast or a more accurate way. There are two "
+            + "accurate calculations available. One to create a higher resolution image with four times the amount of "
+            + "pixels (sub-pixel resolution) or one with normal resolution. Photons are being counted and mapped to "
+            + "the correct pixel values to create a 16-bit image."
         );
     }
 

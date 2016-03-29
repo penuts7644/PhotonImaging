@@ -64,7 +64,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @return None if help shown, else plugin does gray 8-bit and 16-bit image.
      */
     @Override
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(final String arg, final ImagePlus imp) {
 
         // If arg is about, display help message and quit.
         if (arg.equals("about")) {
@@ -98,7 +98,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @return integer for cancel or oke.
      */
     @Override
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(final ImagePlus imp, final String command, final PlugInFilterRunner pfr) {
         GenericDialog gd = new GenericDialog("Threshold Photon Count");
 
         // Add fields to dialog.
@@ -130,7 +130,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @return boolean false if one or more field are not correct.
      */
     @Override
-    public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
+    public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.threshold = (int) gd.getNextNumber();
 
         // Check if given arguments are correct.
@@ -149,14 +149,13 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @param nPasses integer with the amount of runs to be called.
      */
     @Override
-    public void setNPasses(int nPasses) {
+    public void setNPasses(final int nPasses) {
         this.nPasses = nPasses;
     }
 
     /**
      * This method creates a set of pixel values (excluding zero) that are in the pixel value matrix.
      *
-     * @param ip image processor
      */
     private void getUniquePixelValues() {
         SortedSet pixelValueSet = new TreeSet();
