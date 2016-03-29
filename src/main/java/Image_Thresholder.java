@@ -36,16 +36,19 @@ import java.util.TreeSet;
  */
 public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
-//    protected ImagePlus image;
+    /** The matrix containing all pixel values. */
     private int[][] pixelValueMatrix;
+    /** A sorted array containing all unique pixel values. */
     private Integer[] uniquePixelValues;
+    /** The size of the slider (= amount of unique values). */
     private int sliderSize = 0;
-
+    /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
+    /** The threshold pixel value under which the pixel color is set to black. */
     private int threshold = 0;
-
+    /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
-
+    /** Set all requirements for plug-in to run. */
     private int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16;
 

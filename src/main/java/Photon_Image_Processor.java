@@ -51,29 +51,29 @@ import java.util.List;
  */
 public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListener {
 
-    /** Set a ImagePlus. */
+    /** The ImagePlus given by the user. */
     protected ImagePlus image;
-    /** Create a matrix for counting photons. */
+    /** A matrix for counting photons. */
     private int[][] photonCountMatrix;
-    /** Set a SilentMaximumFinder. */
+    /** The 'silent' version of MaximumFinder, used to find photons. */
     private SilentMaximumFinder maxFind;
-    /** Set a ProgressBar. */
+    /** The ProgressBar. */
     private ProgressBar pb;
-    /** Set default previewing enabled value to false. */
+    /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
-    /** Set default tolerance to 100. */
+    /** Noise tolerance, default is 100. */
     private double tolerance = 100;
-    /** Set default preprocessing enabled value to true. */
+    /** This boolean tells whether the user wants to perform preprocessing. */
     private boolean preprocessing = true;
-    /** Set default accuracy method to fast. */
+    /** The output method (fast/accurate/subpixel resolution) is set to fast. */
     private String method = "Fast";
-    /** Set a Label used for found maxima in dialog. */
+    /** This label is used to show the number of maxima found. */
     private Label messageArea;
-    /** Set default total amount of passes to 0. */
+    /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
-    /** Set default current pass to 0. */
+    /** The current pass for the progress bar, default is 0. */
     private int cPasses = 0;
-    /** Set all requirements for plugin to run. */
+    /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_STACKS
             | PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16
@@ -174,7 +174,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.method = gd.getNextChoice();
         this.preprocessing = gd.getNextBoolean();
 
-        // Check if given arguments are correct.
         if (this.tolerance < 0) {
             this.tolerance = 0;
         }
