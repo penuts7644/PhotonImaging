@@ -237,22 +237,41 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Update the progressbar.
         this.pb.show(this.cPasses, this.nPasses);
     }
-    
-    
-    private void runPreview(Polygon rawCoordinates) {
+
+    /**
+     * This method is called while previewing, it shows the found coordinates with the current settings.
+     * 
+     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     */
+    private void runPreview(final Polygon rawCoordinates) {
+        // Save the coordinates in a ROI, set the ROI and change the messagearea.
         PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
         this.image.setRoi(p);
         this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
     }
     
-    private void processPhotonsFast(Polygon rawCoordinates) {
+    /**
+     * This method is called when processing photons using the 'fast' method.
+     * All photons are added to the photon count matrix, without altering.
+     * 
+     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     */
+    private void processPhotonsFast(final Polygon rawCoordinates) {
+        // Loop through all raw coordinates and add them to the count matrix.
         for (int i = 0; i < rawCoordinates.npoints; i++) {
-            // Loop through all raw coordinates and add them to the count matrix.
             this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
         }
     }
     
-    private void processPhotonsAccurate(ImageProcessor ip, Polygon rawCoordinates, float autoThreshold) {
+    /**
+     * This method is called when processing photons using the 'accurate' method.
+     * The exact coordinates are calculated, and then floored and added to the count matrix.
+     * 
+     * @param ip the ImageProcessor of the current image slice
+     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     * @param autoThreshold the auto threshold of the ImageProcessor
+     */
+    private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates, final float autoThreshold) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // floor the coordinates, and add them to the count matrix.
@@ -261,6 +280,14 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         }
     }
     
+    /**
+     * This method is called when processing photons using the 'subpixel resolution' method.
+     * The exact coordinates are calculated, and then multiplied by two and added to the count matrix.
+     * 
+     * @param ip the ImageProcessor of the current image slice
+     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     * @param autoThreshold the auto threshold of the ImageProcessor
+     */
     private void processPhotonsSubPixel(ImageProcessor ip, Polygon rawCoordinates, float autoThreshold) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
