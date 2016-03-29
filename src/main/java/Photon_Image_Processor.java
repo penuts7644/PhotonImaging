@@ -41,31 +41,40 @@ import java.util.List;
 /**
  * Photon_Image_Processor
  *
- * Description comes here.
+ * This class is able to process a stack containing single photon events data and create a combined hi-res image.
+ * Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon
+ * has a center that can be calculated in a fast or a more accurate way. There are two accurate calculations available.
+ * One to create a higher resolution image with four times the amount of pixels (sub-pixel resolution) or one with
+ * normal resolution. Photons are being counted and mapped to the correct pixel values to create a 16-bit image.
  *
  * @author Lonneke Scheffer & Wout van Helvoirt
  */
 public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListener {
 
+    /** Set a ImagePlus. */
     protected ImagePlus image;
+    /** Create a matrix for counting photons. */
     private int[][] photonCountMatrix;
-
-//    private final int photonOutlineSize = 20;
-//    private final int halfPhotonOutlineSize = this.photonOutlineSize / 2;
-//    private int photonCounter = 0;
+    /** Set a SilentMaximumFinder. */
     private SilentMaximumFinder maxFind;
+    /** Set a ProgressBar. */
     private ProgressBar pb;
-
+    /** Set default previewing enabled value to false. */
     private boolean previewing = false;
+    /** Set default tolerance to 100. */
     private double tolerance = 100;
+    /** Set default preprocessing enabled value to true. */
     private boolean preprocessing = true;
+    /** Set default accuracy method to fast. */
     private String method = "Fast";
+    /** Set a Label used for found maxima in dialog. */
     private Label messageArea;
-
+    /** Set default total amount of passes to 0. */
     private int nPasses = 0;
+    /** Set default current pass to 0. */
     private int cPasses = 0;
-
-    private int flags = PlugInFilter.DOES_STACKS
+    /** Set all requirements for plugin to run. */
+    private final int flags = PlugInFilter.DOES_STACKS
             | PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16
             | PlugInFilter.PARALLELIZE_STACKS
@@ -83,7 +92,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @return None if help shown, else plugin does gray 16-bit stacks and parallel.
      */
     @Override
-    public int setup(String arg, ImagePlus imp) {
+    public int setup(final String arg, final ImagePlus imp) {
 
         // If arg is about, display help message. final for calling setup when run completed.
         if (arg.equals("about")) {
@@ -117,7 +126,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @return integer for cancel or oke.
      */
     @Override
-    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+    public int showDialog(final ImagePlus imp, final String command, final PlugInFilterRunner pfr) {
         GenericDialog gd = new GenericDialog("Process Photon Images");
 
         // Add fields to dialog.
@@ -160,7 +169,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @return boolean false if one or more field are not correct.
      */
     @Override
-    public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
+    public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.tolerance = gd.getNextNumber();
         this.method = gd.getNextChoice();
         this.preprocessing = gd.getNextBoolean();
@@ -182,7 +191,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * @param nPasses integer with the amount of runs to be called.
      */
     @Override
-    public void setNPasses(int nPasses) {
+    public void setNPasses(final int nPasses) {
         this.nPasses = nPasses;
     }
 
@@ -192,11 +201,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
      * method needs to be overridden.
      *
-     * @param ip image processor
-     * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
+     * @param ip Image processor.
      */
     @Override
-    public void run(ImageProcessor ip) {
+    public void run(final ImageProcessor ip) {
         // Show status
         this.cPasses++;
         IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses);
@@ -218,15 +226,13 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
         } else if (this.method.equals("Fast")) {
             for (int i = 0; i < rawCoordinates.npoints; i++) {
+
                 // Loop through all raw coordinates and add them to the count matrix.
-//                int x = coordinates.xpoints[i];
-//                int y = coordinates.ypoints[i];
-//                this.photonCountMatrix[x][y]++;
                 this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
             }
         } else {
-            // Calculating the auto threshold takes relatively long
-            // so this function is only called once per image (not for every photon)
+
+            // Calculating the auto threshold takes relatively long so this function is only called once per image.
             float autoThreshold = ip.getAutoThreshold();
             double[] exactCoordinates;
             int x;
@@ -234,6 +240,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
             if (this.method.equals("Accurate")) {
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
+
                     // Loop through all raw coordinates, calculate the exact coordinates,
                     // floor the coordinates, and add them to the count matrix.
                     exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
@@ -242,8 +249,10 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
                     this.photonCountMatrix[x][y]++;
                 }
             } else {
+
                 // this.method equals "Subpixel resolution"
                 for (int i = 0; i < rawCoordinates.npoints; i++) {
+
                     // Loop through all raw coordinates, calculate the exact coordinates,
                     // double the coordinates, and add them to the count matrix.
                     exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i], rawCoordinates.ypoints[i], autoThreshold, ip);
@@ -259,12 +268,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * Preprocess the images.
-     * For instance: despeckling the images to prevent false positives.
+     * Preprocess the images. For instance: despeckling the images to prevent false positives.
      *
-     * @param ip image processor
+     * @param ip Image processor.
      */
-    private void preprocessImage(ImageProcessor ip) {
+    private void preprocessImage(final ImageProcessor ip) {
         // Perform 'despeckle' using RankFilters.
         SilentRankFilters r = new SilentRankFilters();
         r.rank(ip, 1, RankFilters.MEDIAN);
@@ -273,55 +281,46 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     /**
      * Find the photons in the current image using MaximumFinder, and return their approximate coordinates.
      *
-     * @param ip image processor
+     * @param ip Image processor.
+     * @return Polygon with all maxima points found.
      */
-    private Polygon findPhotons(ImageProcessor ip) {
+    private Polygon findPhotons(final ImageProcessor ip) {
         int[][] coordinates;
 
         // Find the maxima using MaximumFinder
-        Polygon maxima = this.maxFind.getMaxima(ip, this.tolerance, true); // Multiple outputs on ext. drive
+        Polygon maxima = this.maxFind.getMaxima(ip, this.tolerance, true);
 
         coordinates = new int[2][maxima.npoints];
-        coordinates[0] = maxima.xpoints; // x coordinates
+        coordinates[0] = maxima.xpoints; // X coordinates
         coordinates[1] = maxima.ypoints; // y coordinates
 
         return maxima;
     }
 
     /**
-     * Calculate the exact subpixel positions of the photon events at the given coordinates.
+     * Calculate the exact sub-pixel positions of the photon events at the given coordinates.
      *
-     * @param xCor original x coordinate as found by MaximumFinder
-     * @param yCor original y coordinate as found by MaximumFinder
-     * @param ip the imageprocessor
-     * @return the new calculated coordinates
+     * @param xCor Original x coordinate as found by MaximumFinder.
+     * @param yCor Original y coordinate as found by MaximumFinder.
+     * @param autoThreshold Value for separating objects from the background.
+     * @param ip Image processor.
+     * @return The new calculated coordinates.
      */
-    private double[] calculateExactCoordinates(int xCor, int yCor, float autoThreshold, ImageProcessor ip) {
-        // A new wand MUST BE created here, otherwise the same wand object might be used
-        // for multiple photons at the same time (-> really weird results)
+    private double[] calculateExactCoordinates(final int xCor, final int yCor, final float autoThreshold, final ImageProcessor ip) {
+        // Wand MUST BE created here, otherwise wand object might be used for multiple photons at the same time.
         Wand wd = new Wand(ip);
         double[] subPixelCoordinates = new double[2];
 
-        // Outline the center of the photon using the wand tool
+        // Outline the center of the photon using the wand tool.
         wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
 
-        // Draw a rectangle around the outline
+        // Draw a rectangle around the outline.
         Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
 
-        // Get the x and y center of the rectangle
+        // Get the x and y center of the rectangle.
         subPixelCoordinates[0] = rect.getCenterX();
         subPixelCoordinates[1] = rect.getCenterY();
 
-//        // Print statements for testing/debugging
-//        System.out.println("image: "+ip.getSliceNumber());
-//        System.out.println("* old x: "+xCor+" old y: "+yCor);
-//        System.out.println("* width: "+rect.width+" height: "+rect.height);
-//        System.out.println("* new x: "+rect.getCenterX()+" new y: "+rect.getCenterY());
-//        System.out.println(xCor - rect.getCenterX());
-//        System.out.println(yCor - rect.getCenterY());
-//        if (Math.abs(xCor - rect.getCenterX()) >= 10 || Math.abs(yCor - rect.getCenterY()) >= 10){
-//            System.out.println("Hellup! " + (xCor - rect.getCenterX()) + ", " + (yCor - rect.getCenterY()));
-//        }
         return subPixelCoordinates;
     }
 
@@ -334,7 +333,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         ShortProcessor sp = new ShortProcessor(this.photonCountMatrix.length, this.photonCountMatrix[0].length);
         sp.setIntArray(this.photonCountMatrix);
 
-        // Add the amount of different values in matrix.
+        // Add the amount of different values in array.
         List<Integer> diffMatrixCount = new ArrayList<>();
         for (int[] photonCountMatrix1 : this.photonCountMatrix) {
             for (int photonCountMatrix2 : photonCountMatrix1) {
@@ -360,7 +359,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      */
     public void showAbout() {
         IJ.showMessage("About Process Photon Images",
-                "Test help message for Process Photon Images class."
+            "This class is able to process a stack containing single photon events data and create a combined hi-res image. "
+            + "Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon "
+            + "has a center that can be calculated in a fast or a more accurate way. There are two accurate calculations available. "
+            + "One to create a higher resolution image with four times the amount of pixels (sub-pixel resolution) or one with "
+            + "normal resolution. Photons are being counted and mapped to the correct pixel values to create a 16-bit image."
         );
     }
 
@@ -370,9 +373,9 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plugin, e.g.
      * after setting breakpoints. Main method will get executed when running this file from IDE.
      *
-     * @param args unused
+     * @param args unused.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         // set the plugins.dir property to make the plugin appear in the Plugins menu
         Class<?> clazz = Photon_Image_Processor.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
@@ -383,133 +386,13 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         new ImageJ();
 
         // Open the image sequence
-//        IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-//        IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // paths Wout
-//        IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-//        IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
+        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
+        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
         ImagePlus image = IJ.getImage();
 
-        // Only if you use new ImagePlus(path) to open the file
-        //image.show();
         // run the plugin
         IJ.runPlugIn(clazz.getName(), "");
     }
 }
-
-// OLD EXACT MIDPOINT CALCULATOR
-// Probably won't be used anymore because it is very slow...
-// ...but I can't throw it away yet because it took so much time to make
-//    /**
-//     * Calculate the exact positions of the given coordinates.
-//     *
-//     * @param xCor original x coordinate
-//     * @param yCor original y coordinate
-//     * @param ip the imageprocessor
-//     * @return the new calculated coordinates
-//     */
-//    private int[] findExactCoordinates(float xCor, float yCor, ImageProcessor ip) {
-//        int[] foundCoordinates = new int[2];
-//        int leftBoundary = (int) xCor - this.halfPhotonOutlineSize;
-//        int topBoundary = (int) yCor - this.halfPhotonOutlineSize;
-//
-//        this.photonCounter++;
-//
-//        // Create a new ROI (region of interest, or selected space)
-//        Roi photonOutline = new Roi(leftBoundary,
-//                topBoundary,
-//                this.photonOutlineSize,
-//                this.photonOutlineSize);
-//
-//        // If the ROI is outside the frame (left and top), set the boundaries to 0
-//        if (leftBoundary < 0) {
-//            leftBoundary = 0;
-//        }
-//        if (topBoundary < 0) {
-//            topBoundary = 0;
-//        }
-//
-//        // set the ROI
-//        ip.setRoi(photonOutline);
-//        ImagePlus photonImp = new ImagePlus("single photon " + this.photonCounter, ip.crop());
-//        photonImp.close();
-//
-//        // reset the ROI
-//        ip.resetRoi();
-//        ip.crop();
-//
-////        old autothresholding method: (does not work)
-////        photonIp.setAutoThreshold(AutoThresholder.Method.Triangle, false, ImageProcessor.BLACK_AND_WHITE_LUT);
-////        photonImp.show();
-////        photonImp.updateImage();
-////        photonImp.updateAndDraw();
-//        // perform autothresholding
-//        ImageProcessor photonIp = photonImp.getProcessor();
-//        photonIp.autoThreshold();
-//
-//        // find the new midpoints
-//        SilentMaximumFinder m = new SilentMaximumFinder();
-//        Polygon photonMaxima = m.getMaxima(photonIp, 10, true);
-//
-//        // by default the 'new' coordinates are set to the original coordinates
-//        foundCoordinates[0] = (int) xCor;
-//        foundCoordinates[1] = (int) yCor;
-//
-//        // If one of the found coordinatepairs is contains the original coordinates,
-//        // then they were right in the beginning, return the original coordinates
-//        for (int i = 0; i < photonMaxima.npoints; i++) {
-//            if (photonMaxima.xpoints[i] == this.halfPhotonOutlineSize
-//                    && photonMaxima.ypoints[i] == this.halfPhotonOutlineSize) {
-//                return foundCoordinates;
-//            }
-//        }
-//
-//        // All resulting coordinates are different from the original coordinates:
-//        switch (photonMaxima.npoints) {
-//            case 0:
-//                // 1. if there were no coordinates found, return the original coordinates
-////            System.out.println("slice " + ip.getSliceNumber() + "photon " + this.photonCounter + ": none found, coordinates: " + xCor + ", " + yCor);
-//                return foundCoordinates;
-//            case 1:
-//                // 2. if there was one coordinatepair found, return this pair
-////            System.out.println("slice " + ip.getSliceNumber() + " photon " + this.photonCounter + ": different found, coordinates: " + xCor + ", " + yCor + ", now set to: " + foundCoordinates[0] + ", " + foundCoordinates[1] + " following: "+ (int)results.getValue("X", 0) + ", " + (int)results.getValue("Y", 0));
-//                foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[0];
-//                foundCoordinates[1] = topBoundary + photonMaxima.ypoints[0];
-//                return foundCoordinates;
-//            default:
-//                // 3. there were multiple coordinatepairs found, return the one closest to the center,
-//                // this is most likely to be the correct one
-//                // set the first results as the 'new coordinates'
-//                foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[0];
-//                foundCoordinates[1] = topBoundary + photonMaxima.ypoints[0];
-//                // calculate the distance of the first result to the center
-//                float distance = this.getEuclidianDistance(xCor, yCor, foundCoordinates[0], foundCoordinates[1]);
-//                // compare with all other results
-//                for (int i = 1; i < photonMaxima.npoints; i++) {
-//                    float newDistance = this.getEuclidianDistance(xCor, yCor,
-//                            (leftBoundary + photonMaxima.xpoints[i]),
-//                            (topBoundary + photonMaxima.ypoints[i]));
-//                    // if the newly found result is closer to the center, set it as the result
-//                    if (newDistance < distance) {
-//                        foundCoordinates[0] = leftBoundary + photonMaxima.xpoints[i];
-//                        foundCoordinates[1] = topBoundary + photonMaxima.ypoints[i];
-//                        distance = newDistance;
-//                    }
-//                }
-//                return foundCoordinates;
-//        }
-//    }
-//
-//    /**
-//     * Calculate the euclidian distance between two points in two-dimensional space.
-//     *
-//     * @param firstX x coordinate of the first point
-//     * @param firstY y coordinate of the first point
-//     * @param secondX x coordinate of the second point
-//     * @param secondY y coordinate of the second point
-//     * @return euclidian distance between the two points
-//     */
-//    private float getEuclidianDistance(float firstX, float firstY, float secondX, float secondY) {
-//        return (float) Math.sqrt((firstX - secondX) * (firstX - secondX)
-//                + (firstY - secondY) * (firstY - secondY));
-//    }
