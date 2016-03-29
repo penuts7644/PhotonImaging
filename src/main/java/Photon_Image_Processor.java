@@ -240,7 +240,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
     /**
      * This method is called while previewing, it shows the found coordinates with the current settings.
-     * 
+     *
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
      */
     private void runPreview(final Polygon rawCoordinates) {
@@ -249,11 +249,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         this.image.setRoi(p);
         this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");
     }
-    
+
     /**
      * This method is called when processing photons using the 'fast' method.
      * All photons are added to the photon count matrix, without altering.
-     * 
+     *
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
      */
     private void processPhotonsFast(final Polygon rawCoordinates) {
@@ -262,11 +262,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
         }
     }
-    
+
     /**
      * This method is called when processing photons using the 'accurate' method.
      * The exact coordinates are calculated, and then floored and added to the count matrix.
-     * 
+     *
      * @param ip the ImageProcessor of the current image slice
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
      * @param autoThreshold the auto threshold of the ImageProcessor
@@ -279,11 +279,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.photonCountMatrix[(int) exactCoordinates[0]][(int) exactCoordinates[1]]++;
         }
     }
-    
+
     /**
      * This method is called when processing photons using the 'subpixel resolution' method.
      * The exact coordinates are calculated, and then multiplied by two and added to the count matrix.
-     * 
+     *
      * @param ip the ImageProcessor of the current image slice
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
      * @param autoThreshold the auto threshold of the ImageProcessor
@@ -296,7 +296,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.photonCountMatrix[(int) (exactCoordinates[0] * 2)][(int) (exactCoordinates[1] * 2)]++;
         }
     }
-    
+
 
     /**
      * Preprocess the images. For instance: despeckling the images to prevent false positives.

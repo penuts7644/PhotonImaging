@@ -113,7 +113,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
             return PlugInFilter.DONE;
         }
         this.previewing = false;
-        
+
         // check whether the user has changed the items
         if (!this.dialogItemChanged(gd, null)) {
             return PlugInFilter.DONE;
