@@ -220,7 +220,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      */
     public void showAbout() {
         IJ.showMessage("About Threshold Photon Count", "<html>"
-            + "<b>This option can be used to filter noise from the output image ceated by the 'Process Photon Images' "
+            + "<b>This option can be used to filter noise from the output image created by the 'Process Photon Images' "
             + "option.</b><br>"
             + "The pixels darker and/or the same than the given threshold value are set to black "
             + "(grayscale value 0).<br><br>"
