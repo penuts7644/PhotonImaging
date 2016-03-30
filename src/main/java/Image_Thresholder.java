@@ -61,7 +61,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
-     * @return None if help shown, else plugin does gray 8-bit and 16-bit image.
+     * @return None if help shown, else plug-in does gray 8-bit and 16-bit image.
      */
     @Override
     public int setup(final String arg, final ImagePlus imp) {
@@ -176,7 +176,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     /**
      * Executed method when selected.
      *
-     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji. Run
      * method needs to be overridden.
      *
      * @param ip image processor
@@ -216,25 +216,28 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     }
 
     /**
-     * This method displays the about information of the plugin.
+     * This method displays the about information of the plug-in.
      */
     public void showAbout() {
-        IJ.showMessage("About Threshold Photon Count",
-            "This plug-in can be used to filter noise from the output image of Photon_Image_Processor. "
-            + "The pixels darker than the given threshold value are set to black."
+        IJ.showMessage("About Threshold Photon Count", "<html>"
+            + "<b>This option can be used to filter noise from the output image ceated by the 'Process Photon Images' "
+            + "option.</b><br>"
+            + "The pixels darker and/or the same than the given threshold value are set to black "
+            + "(grayscale value 0).<br><br>"
+            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plugin, e.g.
+     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
      * after setting breakpoints. Main method will get executed when running this file from IDE.
      *
      * @param args unused
      */
     public static void main(final String[] args) {
-        // set the plugins.dir property to make the plugin appear in the Plugins menu
+        // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
         String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
@@ -252,7 +255,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
         // Only if you use new ImagePlus(path) to open the file
         // image.show();
-        // run the plugin
+        // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }
 }

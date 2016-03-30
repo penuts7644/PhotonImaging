@@ -89,7 +89,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
-     * @return None if help shown, else plugin does gray 16-bit stacks and parallel.
+     * @return None if help shown, else plug-in does gray 16-bit stacks and parallel.
      */
     @Override
     public int setup(final String arg, final ImagePlus imp) {
@@ -197,7 +197,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     /**
      * Executed method when selected.
      *
-     * Run method gets executed when setup is finished and when the user selects this class via plugins in Fiji. Run
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji. Run
      * method needs to be overridden.
      *
      * @param ip Image processor.
@@ -397,29 +397,38 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * This method displays the about information of the plugin.
+     * This method displays the about information of the plug-in.
      */
     public void showAbout() {
-        IJ.showMessage("About Process Photon Images",
-            "This class is able to process a stack containing single photon events data and create a combined hi-res "
-            + "image. Each light point within the image (based on user given tolerance value) is being processed as "
-            + "photon. Each photon has a center that can be calculated in a fast or a more accurate way. There are two "
-            + "accurate calculations available. One to create a higher resolution image with four times the amount of "
-            + "pixels (sub-pixel resolution) or one with normal resolution. Photons are being counted and mapped to "
-            + "the correct pixel values to create a 16-bit image."
+        IJ.showMessage("About Process Photon Images", "<html>"
+            + "<b>This option is able to process a stack containing single photon events data and create a combined "
+            + "high resolution image.</b><br>"
+            + "Each light point within the image (based on user given tolerance value) is being processed as photon. "
+            + "Each photon has a center that can be calculated in a fast or a more accurate way.<br><br>"
+            + "The available calculations modes are:<br>"
+            + "<ul>"
+            + "<li><b>Fast</b> uses the lightest points found as coordinates for the output image."
+            + "<li><b>Accurate</b> improves on fast by calculating the exact center from the light points before "
+            + "creating an output image."
+            + "<li><b>Sub-pixel resolution</b> uses the accurate method but outputs a higher resolution image with "
+            + "four times the amount of pixels. This requires a larger amount of images than the other methods."
+            + "</ul>"
+            + "Photons are being counted and mapped to the correct pixel values to create a 16-bit output image. The "
+            + "output image may be used for the option 'Threshold Photon Count' to remove noise.<br><br>"
+            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plugin, e.g.
+     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
      * after setting breakpoints. Main method will get executed when running this file from IDE.
      *
      * @param args unused.
      */
     public static void main(final String[] args) {
-        // set the plugins.dir property to make the plugin appear in the Plugins menu
+        // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Photon_Image_Processor.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
         String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
@@ -435,7 +444,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
         ImagePlus image = IJ.getImage();
 
-        // run the plugin
+        // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }
 }
