@@ -348,15 +348,14 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         // Outline the center of the photon using the wand tool.
         //wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
         wd.autoOutline(xCor, yCor, this.tolerance, Wand.FOUR_CONNECTED);
-        
 
         // Draw a rectangle around the outline.
         Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
 
         // Check if the newly found coordinates are reasonable.
         // (If the original midpoint is too dark compared to the background,
-        // the whole image might be selected by the wand tool.)
-        if (rect.height > 10 && rect.width > 10) {
+        // the whole image might be selected by the wand tool, if the tolerance is too high.)
+        if (rect.height == ip.getHeight() || rect.width > ip.getWidth()) {
             // If the width and heighth of the rectangle are too big, use the original coordinates.
             subPixelCoordinates[0] = xCor;
             subPixelCoordinates[1] = yCor;
