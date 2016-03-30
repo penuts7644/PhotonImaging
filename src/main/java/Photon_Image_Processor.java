@@ -225,12 +225,12 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             this.processPhotonsFast(rawCoordinates);
         } else {
             // Calculating the auto threshold takes relatively long so this function is only called once per image.
-            float autoThreshold = ip.getAutoThreshold();
+            //float autoThreshold = ip.getAutoThreshold();
 
             if (this.method.equals("Accurate")) {
-                processPhotonsAccurate(ip, rawCoordinates, autoThreshold);
+                processPhotonsAccurate(ip, rawCoordinates);
             } else { // this.method equals "Subpixel resolution"
-                processPhotonsSubPixel(ip, rawCoordinates, autoThreshold);
+                processPhotonsSubPixel(ip, rawCoordinates);
             }
         }
 
@@ -270,16 +270,13 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      *
      * @param ip the ImageProcessor of the current image slice
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
-     * @param autoThreshold the auto threshold of the ImageProcessor
      */
-    private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates,
-                                        final float autoThreshold) {
+    private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // floor the coordinates, and add them to the count matrix.
             double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i],
-                                                                       rawCoordinates.ypoints[i],
-                                                                       autoThreshold, ip);
+                                                                       rawCoordinates.ypoints[i], ip);
             this.photonCountMatrix[(int) exactCoordinates[0]]
                                   [(int) exactCoordinates[1]]++;
         }
@@ -291,16 +288,13 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      *
      * @param ip the ImageProcessor of the current image slice
      * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
-     * @param autoThreshold the auto threshold of the ImageProcessor
      */
-    private void processPhotonsSubPixel(final ImageProcessor ip, final Polygon rawCoordinates,
-                                        final float autoThreshold) {
+    private void processPhotonsSubPixel(final ImageProcessor ip, final Polygon rawCoordinates) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // double the coordinates, and add them to the count matrix.
             double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i],
                                                                        rawCoordinates.ypoints[i],
-                                                                       autoThreshold,
                                                                        ip);
             this.photonCountMatrix[(int) (exactCoordinates[0] * 2)]
                                   [(int) (exactCoordinates[1] * 2)]++;
@@ -343,25 +337,33 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
      *
      * @param xCor Original x coordinate as found by MaximumFinder.
      * @param yCor Original y coordinate as found by MaximumFinder.
-     * @param autoThreshold Value for separating objects from the background.
      * @param ip Image processor.
      * @return The new calculated coordinates.
      */
-    private double[] calculateExactCoordinates(final int xCor, final int yCor,
-                                               final float autoThreshold, final ImageProcessor ip) {
+    private double[] calculateExactCoordinates(final int xCor, final int yCor, final ImageProcessor ip) {
         // Wand MUST BE created here, otherwise wand object might be used for multiple photons at the same time.
         Wand wd = new Wand(ip);
         double[] subPixelCoordinates = new double[2];
 
         // Outline the center of the photon using the wand tool.
-        wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
+        //wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
+        wd.autoOutline(xCor, yCor, this.tolerance, Wand.FOUR_CONNECTED);
 
         // Draw a rectangle around the outline.
         Rectangle rect = new PolygonRoi(wd.xpoints, wd.ypoints, wd.npoints, Roi.FREEROI).getBounds();
 
-        // Get the x and y center of the rectangle.
-        subPixelCoordinates[0] = rect.getCenterX();
-        subPixelCoordinates[1] = rect.getCenterY();
+        // Check if the newly found coordinates are reasonable.
+        // (If the original midpoint is too dark compared to the background,
+        // the whole image might be selected by the wand tool, if the tolerance is too high.)
+        if (rect.height == ip.getHeight() || rect.width > ip.getWidth()) {
+            // If the width and heighth of the rectangle are too big, use the original coordinates.
+            subPixelCoordinates[0] = xCor;
+            subPixelCoordinates[1] = yCor;
+        } else {
+            // Otherwise, return the centers of the found rectangles as new coordinates.
+            subPixelCoordinates[0] = rect.getCenterX();
+            subPixelCoordinates[1] = rect.getCenterY();
+        }
 
         return subPixelCoordinates;
     }
