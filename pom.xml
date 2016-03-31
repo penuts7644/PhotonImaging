@@ -17,15 +17,7 @@
     <version>1.0</version>
 
     <name>PhotonImaging</name>
-    <description>A Maven project implementing an ImageJ 1.x plug-in.
-The Photon_Image_processor class is able to process a stack containing single photon events data and create a combined hi-res image.
-Each light point within the image (based on user given tolerance value) is being processed as photon.
-Each photon has a center that can be calculated in a fast or a more accurate way.
-There are two accurate calculations available.
-One to create a higher resolution image with four times the amount of pixels (sub-pixel resolution) or one with normal resolution.
-Photons are being counted and mapped to the correct pixel values to create a 16-bit image.
-The Image_Thresholder class can be used to filter noise from the output image of Photon_Image_Processor.
-The pixels darker than the given threshold value are set to black.</description>
+    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.</description>
 
     <developers>
         <developer>
