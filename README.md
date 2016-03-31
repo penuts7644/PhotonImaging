@@ -11,14 +11,12 @@
 ### How do I get set up? ###
 
 * This plug-in requires at least [Java 8](https://www.oracle.com/downloads/index.html) to function.
-* Make sure that [Fiji](http://fiji.sc/) is installed on your Windows/Mac/Linux device and that is uses Java 8.
+* Make sure that [Fiji](http://fiji.sc/) is installed on your Windows/Mac/Linux device and that Fiji uses Java 8.
 
 ### How do I use this web application? ###
 
 The plug-in (jar file) can be installed in Fiji via 'Plugins>Install PlugIn...'. After you installed the plug-in, restart Fiji.
 When correctly installed, you'll now have 'Plugins>Photon Image Processor' available.
-
-There are two options available:
 
 ** Process Photon Images **
 
