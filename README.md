@@ -6,7 +6,7 @@
 
 * Authors: Lonneke Scheffer & Wout van Helvoirt
 * Version: 1.0
-* This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon. Each photons X and Y coordinate is being counted. Lastly, an grayscale image is created with all counts mapped to the correct pixel values.
+* This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.
 
 ### How do I get set up? ###
 
