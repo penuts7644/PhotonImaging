@@ -65,7 +65,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     private double tolerance = 100;
     /** This boolean tells whether the user wants to perform preprocessing. */
     private boolean preprocessing = true;
-    /** The output method (fast/accurate/subpixel resolution) is set to fast. */
+    /** The output method (fast/accurate/sub-pixel resolution) is set to fast. */
     private String method = "Fast";
     /** This label is used to show the number of maxima found. */
     private Label messageArea;
