@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Lonneke Scheffer & Wout van Helvoirt
+ * Copyright (c) 2016 Lonneke Scheffer and Wout van Helvoirt
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -33,7 +33,7 @@ import java.util.TreeSet;
  * This class can be used to filter noise from the output image of Photon_Image_Processor.
  * The pixels darker than the given threshold value are set to black.
  *
- * @author Lonneke Scheffer & Wout van Helvoirt
+ * @author Lonneke Scheffer and Wout van Helvoirt
  */
 public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 

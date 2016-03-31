@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Lonneke Scheffer & Wout van Helvoirt
+ * Copyright (c) 2016 Lonneke Scheffer and Wout van Helvoirt
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -47,7 +47,7 @@ import java.util.List;
  * One to create a higher resolution image with four times the amount of pixels (sub-pixel resolution) or one with
  * normal resolution. Photons are being counted and mapped to the correct pixel values to create a 16-bit image.
  *
- * @author Lonneke Scheffer & Wout van Helvoirt
+ * @author Lonneke Scheffer and Wout van Helvoirt
  */
 public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListener {
 
