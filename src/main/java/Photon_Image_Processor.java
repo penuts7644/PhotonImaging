@@ -206,7 +206,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     public void run(final ImageProcessor ip) {
         // Show status
         this.cPasses++;
-        IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses);
+        //IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses);
+        IJ.showStatus("Processing...");
 
         Polygon rawCoordinates;
 
@@ -440,7 +441,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         new ImageJ();
 
         // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+         IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/900Vdark");
         // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
         // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
         // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
