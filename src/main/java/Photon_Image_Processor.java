@@ -72,7 +72,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
     /** The current pass for the progress bar, default is 0. */
-    private int cPasses = 0;
+    private int cPass = 0;
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_STACKS
             | PlugInFilter.DOES_8G
@@ -205,8 +205,8 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     @Override
     public void run(final ImageProcessor ip) {
         // Show status
-        this.cPasses++;
-        IJ.showStatus("Processing " + this.cPasses + "/" + this.nPasses);
+        this.cPass++;
+        IJ.showStatus("Processing " + this.cPass + "/" + this.nPasses);
 
         Polygon rawCoordinates;
 
@@ -235,7 +235,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         }
 
         // Update the progressbar.
-        this.pb.show(this.cPasses, this.nPasses);
+        this.pb.show(this.cPass, this.nPasses);
     }
 
     /**
