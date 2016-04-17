@@ -20,16 +20,11 @@ When correctly installed, you'll now have 'Plugins>Photon Image Processor' avail
 
 ** Open TIFF Files **
 
-This option can be used to open all TIFF files in a directory as virtual stack.
-
-Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual stack can be used as input for the 'Process Photon Images' option.
+This option can be used to open all TIFF files in a directory as virtual stack. Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual stack can be used as input for the 'Process Photon Images' option.
 
 ** Process Photon Images **
 
-This option is able to process a stack containing single photon events data and create a combined high resolution image.
-
-Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon has a center that can be calculated in a fast or a more accurate way.
-The available calculations modes are:
+This option is able to process a stack containing single photon events data and create a combined high resolution image. Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon has a center that can be calculated in a fast or a more accurate way. The available calculations modes are:
 
 * ** Fast ** uses the lightest points found as coordinates for the output image.
 * ** Accurate ** improves on fast by calculating the exact center from the light points before creating an output image.
@@ -39,6 +34,4 @@ Photons are being counted and mapped to the correct pixel values to create a 16-
 
 ** Threshold Photon Count **
 
-This option can be used to filter noise from the output image created by the 'Process Photon Images' option.
-
-The pixels darker and/or the same than the given threshold value are set to black (grayscale value 0).
+This option can be used to filter noise from the output image created by the 'Process Photon Images' option. The pixels darker and/or the same than the given threshold value are set to black (grayscale value 0).
