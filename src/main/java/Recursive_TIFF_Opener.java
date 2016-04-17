@@ -29,8 +29,8 @@ import java.nio.file.Paths;
 
 /**
  * Recursive_TIFF_Opener
-
- This class can be used to open all TIFF files in a directory as virtual stack.
+ *
+ * This class can be used to open all TIFF files in a directory as virtual stack.
  * Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual
  * stack can be used as input for the 'Process Photon Images' option.
  *

@@ -206,7 +206,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     public void run(final ImageProcessor ip) {
         // Show status
         this.cPass++;
-        IJ.showStatus("Processing " + this.cPass + "/" + this.nPasses);
+        IJ.showStatus("Processing...");
 
         Polygon rawCoordinates;
 
