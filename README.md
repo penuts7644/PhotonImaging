@@ -18,6 +18,11 @@
 The plug-in (jar file) can be installed in Fiji via 'Plugins>Install PlugIn...'. After you installed the plug-in, restart Fiji.
 When correctly installed, you'll now have 'Plugins>Photon Image Processor' available.
 
+** Open TIFF Files **
+
+This option can be used to open all TIFF files in a directory as virtual stack.
+Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual stack can be used as input for the 'Process Photon Images' option.
+
 ** Process Photon Images **
 
 This option is able to process a stack containing single photon events data and create a combined high resolution image.
