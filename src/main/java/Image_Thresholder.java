@@ -31,7 +31,7 @@ import java.util.TreeSet;
  * Image_Thresholder
  *
  * This class can be used to filter noise from the output image of Photon_Image_Processor.
- * The pixels darker than the given threshold value are set to black.
+ * All pixels will get a new value based on there current value minus the given threshold value.
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
@@ -201,7 +201,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
 
     /**
-     * This method sets the given pixel value to zero.
+     * This method gets the current pixel value and sets it to the current pixel value minus the threshold value.
      *
      * @param xCor X position of the pixel.
      * @param yCor Y position of the pixel.
@@ -209,10 +209,8 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      * @param thresholdValue Threshold value selected by user.
      */
     private void setPixelValue(final int xCor, final int yCor, final ImageProcessor ip, final int thresholdValue) {
-        // Set all pixels with a value under the threshold value to 0.
-        if (ip.getPixelValue(xCor, yCor) <= thresholdValue) {
-            ip.putPixelValue(xCor, yCor, 0);
-        }
+        // Set the pixel value to a new value by taking ist's original value minus the the threshold value.
+        ip.putPixelValue(xCor, yCor, (ip.getPixelValue(xCor, yCor) - thresholdValue));
     }
 
     /**
@@ -222,8 +220,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         IJ.showMessage("About Threshold Photon Count", "<html>"
             + "<b>This option can be used to filter noise from the output image created by the 'Process Photon Images' "
             + "option.</b><br>"
-            + "The pixels darker and/or the same than the given threshold value are set to black "
-            + "(grayscale value 0).<br><br>"
+            + "All pixels will get a new value based on there current value minus the given threshold value.<br><br>"
             + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
