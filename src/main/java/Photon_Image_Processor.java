@@ -237,6 +237,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         // Update the progressbar.
         this.pb.show(this.cPass, this.nPasses);
+
     }
 
     /**
@@ -262,7 +263,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             this.photonCountMatrix[rawCoordinates.xpoints[i]]
                                   [rawCoordinates.ypoints[i]]++;
-            this.photoncount ++;
         }
     }
 
