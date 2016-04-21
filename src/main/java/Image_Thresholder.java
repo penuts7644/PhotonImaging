@@ -52,6 +52,9 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16;
+    
+    private int totalPhotons;
+    private int imageCount;
 
     /**
      * Setup method as initializer.
