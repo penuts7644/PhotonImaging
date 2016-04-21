@@ -80,9 +80,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
             | PlugInFilter.PARALLELIZE_STACKS
             | PlugInFilter.STACK_REQUIRED
             | PlugInFilter.FINAL_PROCESSING;
-    
-    private int photoncount;
-    private int imagecount;
+
 
     /**
      * Setup method as initializer.
@@ -239,10 +237,6 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
 
         // Update the progressbar.
         this.pb.show(this.cPass, this.nPasses);
-        this.imagecount ++;
-        if (this.imagecount % 1000 == 0){
-            System.out.println("image " + this.imagecount + ", photons" + this.photoncount);
-        }
     }
 
     /**
