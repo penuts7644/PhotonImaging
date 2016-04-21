@@ -34,4 +34,4 @@ Photons are being counted and mapped to the correct pixel values to create a 16-
 
 ** Threshold Photon Count **
 
-This option can be used to filter noise from the output image created by the 'Process Photon Images' option. The pixels darker and/or the same than the given threshold value are set to black (grayscale value 0).
+This option can be used to filter noise from the output image created by the 'Process Photon Images' option. All pixels will get a new value based on there current value minus the given threshold value.
