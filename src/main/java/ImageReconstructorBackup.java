@@ -1,21 +1,21 @@
+
+import org.apache.commons.math3.util.CombinatoricsUtils;
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
 
-
-import org.apache.commons.math3.util.CombinatoricsUtils;
-
 /**
  *
  * @author lonneke
  */
-public class ImageReconstructor {
+public class ImageReconstructorBackup {
     private final int[][] photonCountMatrix;
     private final float darkCountRate;
 
-    public ImageReconstructor(int[][] photonCountMatrix, float darkCountRate) {
+    public ImageReconstructorBackup(int[][] photonCountMatrix, float darkCountRate) {
         this.photonCountMatrix = photonCountMatrix;
         this.darkCountRate = darkCountRate;
     }
@@ -31,6 +31,7 @@ public class ImageReconstructor {
                 logLikelihood += (Math.log(modifiedImage[i][j] + this.darkCountRate) 
                         - (modifiedImage[i][j] + this.darkCountRate) 
                         - Math.log(CombinatoricsUtils.factorial(this.photonCountMatrix[i][j]))); // logfactorial? geeft dit dezelfde output?
+                // LET OP KLOPT NIET VOLGENS MIJ (moet je niet origineel vergelijken met nieuw???)
             }
         }
         
@@ -91,5 +92,35 @@ public class ImageReconstructor {
 //    The merit function is calculated for this modified image, and repeated iterations are performed until the image corresponding to a maximization of this merit function is found.
     public double meritFunction(double regularzationFactor, int[][] modifiedImage, double[] coefficientsOfSpatialFrequencies){
         return this.getModifiedImageLogLikelihood(modifiedImage) - regularzationFactor * this.getMeasureOfSparsity(coefficientsOfSpatialFrequencies);
+    }
+
+    
+    public static void main(final String[] args) {
+        System.out.println("hsello");
+        
+        
+        
+        ImageReconstructorBackup ir = new ImageReconstructorBackup(new int[5][5], 0);
+        DCT dct = new DCT(8);
+        //double[][] input = new double[][] {new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}, new double[] {1, 2, 3, 4, 5, 6, 7, 8}};
+        double[][] input = new double[][] {new double[] {140, 144, 147, 140, 140, 155, 179, 175}, 
+                                           new double[] {144, 152, 140, 147, 140, 148, 167, 179}, 
+                                           new double[] {152, 155, 136, 167, 163, 162, 152, 172}, 
+                                           new double[] {168, 145, 156, 160, 152, 155, 136, 160}, 
+                                           new double[] {162, 148, 156, 148, 140, 136, 147, 162}, 
+                                           new double[] {147, 167, 140, 155, 155, 140, 136, 162}, 
+                                           new double[] {136, 156, 123, 167, 162, 144, 140, 147}, 
+                                           new double[] {148, 155, 136, 155, 152, 147, 147, 136}};
+        double[][] output = dct.forwardDCT(input);
+        
+        for (int i = 0; i < output.length; i++){
+            for (int j = 0; j < output[0].length; j++){
+                System.out.printf(Math.round(output[i][j]) + " ");
+            }
+            System.out.printf("\n");
+        }
+        
+        System.out.println(input.length);
+        System.out.println(output.length);
     }
 }

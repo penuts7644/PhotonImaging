@@ -73,7 +73,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
         }
 
         if (imp != null && imp.getNSlices() == 1) {
-            // I there is one image open, get the pixel value information from the image.
+            // If there is one image open, get the pixel value information from the image.
             this.pixelValueMatrix = imp.getProcessor().getIntArray();
             this.getUniquePixelValues();
             this.sliderSize = this.uniquePixelValues.length - 1;
