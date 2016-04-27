@@ -122,5 +122,8 @@ public class ImageReconstructorBackup {
         
         System.out.println(input.length);
         System.out.println(output.length);
+        
+        System.out.println("***");
+        System.out.println(Math.floorDiv(8, 2));
     }
 }
