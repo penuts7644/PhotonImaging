@@ -2,8 +2,11 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.ImageWindow;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
+import java.util.Random;
 import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
@@ -28,6 +31,8 @@ public class Image_Reconstructor implements PlugInFilter {
     private ImagePlus imp;
     /** The matrix containing all original pixel values. */
     private int[][] originalMatrix;
+    
+    private Random randomNumber = new Random(); // DEZE RANDOM MOET ERGENS ANDERS AANGEMAAKT WORDEN LATER UITZOEKEN
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16; // DOES 32??? ?????????????????????????????????????????????????????????????
@@ -77,15 +82,27 @@ public class Image_Reconstructor implements PlugInFilter {
 
         bestMerit = calculateMerit(bestMatrix);
         
-        while (true){
+        for (int i = 0; i < 1000; i++) {
             this.copyMatrixValues(alteredMatrix, bestMatrix);
             this.changeMatrixRandomly(alteredMatrix);
             newMerit = this.calculateMerit(alteredMatrix);
             if (newMerit > bestMerit){
                 this.copyMatrixValues(bestMatrix, alteredMatrix);
                 bestMerit = newMerit;
-            }
+            } 
         }
+        
+        System.out.println("klaar");
+        
+        ShortProcessor sp = new ShortProcessor(bestMatrix.length, bestMatrix[0].length);
+        sp.setIntArray(bestMatrix);
+        
+        // Create new output image with title.
+        ImagePlus outputImage = new ImagePlus("Photon Count Image", sp);
+
+        // Make new image window in ImageJ and set the window visible.
+        ImageWindow outputWindow = new ImageWindow(outputImage);
+        outputWindow.setVisible(true);
         
         // aan het eind: bestMatrix terugberekenen naar plaatje
     }
@@ -155,19 +172,22 @@ public class Image_Reconstructor implements PlugInFilter {
         }
         
         
-        try {
-            for (int i = 0; i < this.originalMatrix.length; i++){
-                for (int j = 0; i < this.originalMatrix[0].length; i++){
+        
+        for (int i = 0; i < this.originalMatrix.length; i++){
+            for (int j = 0; i < this.originalMatrix[0].length; i++){
+                try{
                     logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate) 
-                            - (modifiedMatrix[i][j] + this.darkCountRate) 
-                            - Math.log(CombinatoricsUtils.factorial(this.originalMatrix[i][j]))); // logfactorial? geeft dit dezelfde output?
+                        - (modifiedMatrix[i][j] + this.darkCountRate)
+                        - CombinatoricsUtils.factorialLog(this.originalMatrix[i][j]));
+                        //- Math.log(CombinatoricsUtils.factorial(this.originalMatrix[i][j]))); // logfactorial? geeft dit dezelfde output?
                     // NOG EVEN GOED UITZOEKEN HOE DEZE FORMULE ECHT WERKT!
+                } catch (MathArithmeticException ex){
+                    System.out.println("hoi, waarde te hoog: ");
                 }
+                
             }
-        } catch (MathArithmeticException ex){
-            System.out.println("hoi");
-            
         }
+        
         return logLikelihood;
         
     }
@@ -233,7 +253,9 @@ public class Image_Reconstructor implements PlugInFilter {
     }
 
     private void changeMatrixRandomly(int[][] matrix) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        matrix[this.randomNumber.nextInt(matrix.length)][this.randomNumber.nextInt(matrix[0].length)] += 2;
+        
+        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
     
