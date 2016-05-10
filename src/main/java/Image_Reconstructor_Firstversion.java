@@ -20,7 +20,7 @@ import org.apache.commons.math3.util.CombinatoricsUtils;
  *
  * @author lonneke
  */
-public class Image_Reconstructor implements PlugInFilter {
+public class Image_Reconstructor_Firstversion implements PlugInFilter {
     /** */
     private int dctBlockSize = 8;
     private float darkCountRate = 0;
