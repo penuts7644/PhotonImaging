@@ -12,6 +12,7 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.ImageWindow;
 import ij.plugin.filter.PlugInFilter;
 import ij.process.ImageProcessor;
 import java.util.Random;
@@ -34,7 +35,7 @@ public class Image_Reconstructor implements PlugInFilter {
     /** */
     private int dctBlockSize = 12;
     private float darkCountRate = (float)0.1;
-    private float regularizationFactor = (float)0.00001; // dit is lambda, moet uiteindelijk door de user bepaald worden in dialoogvenster
+    private float regularizationFactor = (float)0.001; // dit is lambda, moet uiteindelijk door de user bepaald worden in dialoogvenster
     private ImagePlus imp;
 
     /* breedte = breedte - (breedte % dctBlockSize)*/
@@ -44,7 +45,7 @@ public class Image_Reconstructor implements PlugInFilter {
     /** The matrix containing all original pixel values. */
 //    private int[][] originalMatrix;
 
-    private Random randomGenerator; // DEZE RANDOM MOET ERGENS ANDERS AANGEMAAKT WORDEN LATER UITZOEKEN
+    private Random randomGenerator;
 
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
@@ -76,44 +77,39 @@ public class Image_Reconstructor implements PlugInFilter {
         int randomY = 0;
         int randomColorValue = 0;
         
+        ImageProcessor newImage = ip.duplicate();
+        
         originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         int midpoint = this.dctBlockSize / 2 - 1;
         
 
-        for (int i = 0; i < 100000; i++) {
-            randomX = this.randomGenerator.nextInt(ip.getWidth());
-            randomY = this.randomGenerator.nextInt(ip.getHeight());
-            randomColorValue = this.randomGenerator.nextInt((int)((ip.get(randomX, randomY) + 1) * 5)); // the color value is between 0 and the maximum value in the image + 10%
+        for (int i = 0; i < 10000; i++) {
+            randomX = this.randomGenerator.nextInt(newImage.getWidth());
+            randomY = this.randomGenerator.nextInt(newImage.getHeight());
+            randomColorValue = this.randomGenerator.nextInt((int)((newImage.get(randomX, randomY) + 1) * 2)); 
             
             // get the part of the original matrix around the randomly selected x and y, and copy the values to the modifiedMatrixPart
-            this.getMatrixPartValues(ip.getIntArray(), originalMatrixPart, randomX, randomY);
+            this.getMatrixPartValues(newImage.getIntArray(), originalMatrixPart, randomX, randomY);
             this.copyMatrixValues(originalMatrixPart, modifiedMatrixPart);
             
             // Modify the modifiedMatrixPart
             modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
             
             if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
-                ip.set(randomX, randomY, randomColorValue);
-                System.out.println("a " + i);
-            } else{
-                System.out.println("d " + i);
+                newImage.set(randomX, randomY, randomColorValue);
             }
             
+            //new ImagePlus(newImage);
         }
+        
+        // Create new output image with title.
+        ImagePlus outputImage = new ImagePlus("Reconstructed Image", newImage);
 
-//
-//        ShortProcessor sp = new ShortProcessor(bestMatrix.length, bestMatrix[0].length);
-//        sp.setIntArray(bestMatrix);
-//
-//        // Create new output image with title.
-//        ImagePlus outputImage = new ImagePlus("Photon Count Image", sp);
-//
-//        // Make new image window in ImageJ and set the window visible.
-//        ImageWindow outputWindow = new ImageWindow(outputImage);
-//        outputWindow.setVisible(true);
-//
-//        // aan het eind: bestMatrix terugberekenen naar plaatje
+        // Make new image window in ImageJ and set the window visible.
+        ImageWindow outputWindow = new ImageWindow(outputImage);
+        outputWindow.setVisible(true);
+
     }
 
     /**
