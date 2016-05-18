@@ -12,9 +12,15 @@
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.DialogListener;
+import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
+import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
+import java.awt.AWTEvent;
+import java.awt.Label;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,19 +37,17 @@ import org.apache.commons.math3.util.CombinatoricsUtils;
  *
  * @author lonneke
  */
-public class Image_Reconstructor implements PlugInFilter {
+public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener {
     /** */
     private int dctBlockSize = 12;
     private float darkCountRate = (float)0.1;
-    private float regularizationFactor = (float)0.001; // dit is lambda, moet uiteindelijk door de user bepaald worden in dialoogvenster
+    private float regularizationFactor = (float)0.001;
     private ImagePlus imp;
-
-    /* breedte = breedte - (breedte % dctBlockSize)*/
-//    private int outputWidth;
-//    private int outputHeigth;
-
-    /** The matrix containing all original pixel values. */
-//    private int[][] originalMatrix;
+    
+    private int nPasses;
+    private int iterations = 1000;
+    
+    private boolean previewing = false;
 
     private Random randomGenerator;
 
@@ -84,7 +88,7 @@ public class Image_Reconstructor implements PlugInFilter {
         int midpoint = this.dctBlockSize / 2 - 1;
         
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < this.iterations; i++) {
             randomX = this.randomGenerator.nextInt(newImage.getWidth());
             randomY = this.randomGenerator.nextInt(newImage.getHeight());
             randomColorValue = this.randomGenerator.nextInt((int)((newImage.get(randomX, randomY) + 1) * 2)); 
@@ -273,6 +277,57 @@ public class Image_Reconstructor implements PlugInFilter {
         // image.show();
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
+    }
+
+    @Override
+    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+        GenericDialog gd = new GenericDialog("Reconstruct Image");
+        
+        // Add fields to dialog.
+        gd.addNumericField("Dark count rate", this.darkCountRate, 2);
+        gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
+        gd.addNumericField("iterations (temporary)", this.iterations, 0);
+        gd.addDialogListener(this);
+
+        // previewing is true while showing the dialog
+        this.previewing = true;
+        gd.showDialog();
+        if (gd.wasCanceled()) {
+            return PlugInFilter.DONE;
+        }
+        this.previewing = false;
+
+        // check whether the user has changed the items
+        if (!this.dialogItemChanged(gd, null)) {
+            return PlugInFilter.DONE;
+        }
+        
+        return this.flags;
+    }
+
+    @Override
+    public void setNPasses(final int nPasses) {
+        this.nPasses = nPasses;
+    }
+
+    @Override
+    public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
+        this.darkCountRate = (float) gd.getNextNumber();
+        this.regularizationFactor = (float) gd.getNextNumber();
+        this.iterations = (int) gd.getNextNumber();
+
+        // Check if given arguments are correct.
+        if (this.darkCountRate < 0) {
+            this.darkCountRate = 0;
+        }
+        if (this.regularizationFactor < 0) {
+            this.regularizationFactor = 0;
+        }
+        if (this.iterations < 0) {
+            this.iterations = 1;
+        }
+
+        return (!gd.invalidNumber());
     }
 
 }
