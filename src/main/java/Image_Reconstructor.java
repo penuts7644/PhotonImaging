@@ -41,12 +41,12 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
     /** */
     private int dctBlockSize = 12;
     private float darkCountRate = (float)0.1;
-    private float regularizationFactor = (float)0.001;
+    private float regularizationFactor = (float)0.5;
     private ImagePlus imp;
-    
+
     private int nPasses;
-    private int iterations = 1000;
-    
+    private int iterations = 10000;
+
     private boolean previewing = false;
 
     private Random randomGenerator;
@@ -66,9 +66,6 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
 
         this.imp = imp;
         this.randomGenerator = new Random();
-//        this.outputHeigth = this.imp.getHeight() - (this.imp.getHeight() % this.dctBlockSize);
-//        this.outputWidth = this.imp.getWidth()- (this.imp.getWidth()% this.dctBlockSize);
-//        this.originalMatrix = new int[this.outputWidth][this.outputHeigth];
 
         return this.flags;
     }
@@ -77,38 +74,62 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
     public void run(ImageProcessor ip) {
         int[][] originalMatrixPart;
         int[][] modifiedMatrixPart;
-        int randomX = 0;
-        int randomY = 0;
-        int randomColorValue = 0;
-        
+        int randomX;
+        int randomY;
+        int randomColorValue;
+        int maxColor;
+        int minColor;
+
         ImageProcessor newImage = ip.duplicate();
-        
+
         originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         int midpoint = this.dctBlockSize / 2 - 1;
         
+        int success = 0;
+        int fail = 0;
+
 
         for (int i = 0; i < this.iterations; i++) {
+            // Choose a random pixel and a random color for that pixel
             randomX = this.randomGenerator.nextInt(newImage.getWidth());
             randomY = this.randomGenerator.nextInt(newImage.getHeight());
-            randomColorValue = this.randomGenerator.nextInt((int)((newImage.get(randomX, randomY) + 1) * 2)); 
-            
-            // get the part of the original matrix around the randomly selected x and y, and copy the values to the modifiedMatrixPart
-            this.getMatrixPartValues(newImage.getIntArray(), originalMatrixPart, randomX, randomY);
-            this.copyMatrixValues(originalMatrixPart, modifiedMatrixPart);
-            
+            minColor = newImage.get(randomX, randomY); // new image of original image?
+            maxColor = (minColor + 1) * 2;
+            randomColorValue = this.randomGenerator.nextInt(maxColor - minColor) + minColor;
+
+            // Get the part of the original matrix around the randomly selected x and y,
+            // from both the original and modified matrix.
+//            this.getMatrixPartValues(newImage.getIntArray(), originalMatrixPart, randomX, randomY);
+//            this.copyMatrixValues(originalMatrixPart, modifiedMatrixPart);
+            // DEZE VERSIE MOGELIJK BETER WANT ORIGINAL MATRIX IS DAADWERKELIJK HET ORIGINEEL EN NIET DE STEEDS GEUPDATETE VARIANT
+            this.getMatrixPartValues(ip.getIntArray(), originalMatrixPart, randomX, randomY);
+            this.getMatrixPartValues(newImage.getIntArray(), modifiedMatrixPart, randomX, randomY);
+
             // Modify the modifiedMatrixPart
             modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
-            
+
             if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
                 newImage.set(randomX, randomY, randomColorValue);
+                success ++;
+            } else{
+                fail ++;
             }
-            
+            if (i % 1000 == 0){
+                System.out.println("Iteration " + i);
+                System.out.println("success = " + success);
+                System.out.println("fail = " + fail);
+                if (fail > 0){
+                    System.out.println("ratio success/fail= " + (float)success / (float)fail);
+                }
+                System.out.println("");
+            }
+
             //new ImagePlus(newImage);
         }
-        
+
         // Create new output image with title.
-        ImagePlus outputImage = new ImagePlus("Reconstructed Image", newImage);
+        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor + "," + this.iterations, newImage);
 
         // Make new image window in ImageJ and set the window visible.
         ImageWindow outputWindow = new ImageWindow(outputImage);
@@ -124,9 +145,9 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
      * @param matrixPart the partial matrix to be filled
      * @param midX the midpoint on the x axis of the new matrix in the original matrix
      * @param midY the midpoint on the y axis of the new matrix in the original matrix
-     * @return the copied part of the matrix
      */
-    public void getMatrixPartValues(final int[][] sourceMatrix, final int[][] matrixPart, final int midX, final int midY) {
+    public void getMatrixPartValues(final int[][] sourceMatrix, final int[][] matrixPart,
+                                    final int midX, final int midY) {
         int startX = midX - (matrixPart.length / 2) + 1;
         int startY = midY - (matrixPart[0].length / 2) + 1;
 
@@ -139,7 +160,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
                 // try to copy the value, if the index is out of bounds, set the value to zero
                 try {
                     matrixPart[i][j] = sourceMatrix[x][y];
-                } catch (ArrayIndexOutOfBoundsException aiex) { 
+                } catch (ArrayIndexOutOfBoundsException aiex) {
                     matrixPart[i][j] = 0;
                 }
             }
@@ -151,15 +172,15 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
      * if the source matrix is bigger than the new matrix, only the part that fits inside the new matrix is copied
      * if the source matrix is smaller, the unknown values are filled in with zero.
      *
-     * @param newMatrix
-     * @param sourceMatrix
+     * @param sourceMatrix the matrix that the data is copied from
+     * @param newMatrix    the matrix that the data is copied to
      */
-    public void copyMatrixValues(int[][] sourceMatrix, int[][] newMatrix){
-        for (int i=0; i<newMatrix.length; i++){
-            for (int j=0; j<newMatrix[0].length; j++){
-                try{
+    public void copyMatrixValues(final int[][] sourceMatrix, int[][] newMatrix) { // WORDT DEZE NOG GEBRUIKT? KIJKEN VOORDAT JE HEM INLEVERT
+        for (int i = 0; i < newMatrix.length; i++) {
+            for (int j = 0; j < newMatrix[0].length; j++) {
+                try {
                     newMatrix[i][j] = sourceMatrix[i][j];
-                } catch (ArrayIndexOutOfBoundsException aiex){
+                } catch (ArrayIndexOutOfBoundsException aiex) {
                     newMatrix[i][j] = 0;
                 }
 
@@ -197,14 +218,9 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
 
         for (int i = 0; i < originalMatrix.length; i++){
             for (int j = 0; i < originalMatrix[0].length; i++){
-                try{
-                    logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate)
+                logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate)
                         - (modifiedMatrix[i][j] + this.darkCountRate)
                         - CombinatoricsUtils.factorialLog(originalMatrix[i][j]));
-                } catch (MathArithmeticException ex){
-                    System.out.println("hoi, waarde te hoog: ");
-                }
-
             }
         }
 
@@ -282,7 +298,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
     @Override
     public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
         GenericDialog gd = new GenericDialog("Reconstruct Image");
-        
+
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 2);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
@@ -301,7 +317,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         if (!this.dialogItemChanged(gd, null)) {
             return PlugInFilter.DONE;
         }
-        
+
         return this.flags;
     }
 
@@ -322,6 +338,8 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         }
         if (this.regularizationFactor < 0) {
             this.regularizationFactor = 0;
+        } else if (this.regularizationFactor > 1){
+            this.regularizationFactor = 1;
         }
         if (this.iterations < 0) {
             this.iterations = 1;
@@ -329,5 +347,8 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
 
         return (!gd.invalidNumber());
     }
+
+
+
 
 }
