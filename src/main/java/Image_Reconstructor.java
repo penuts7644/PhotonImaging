@@ -45,7 +45,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
     private ImagePlus imp;
 
     private int nPasses;
-    private int iterations = 10000;
+    private float threshold = (float)0.3;
 
     private boolean previewing = false;
 
@@ -86,11 +86,12 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         int midpoint = this.dctBlockSize / 2 - 1;
         
-        int success = 0;
-        int fail = 0;
+        float modified = 1;
+        float unmodified = 1;
 
-
-        for (int i = 0; i < this.iterations; i++) {
+        
+        
+        while (modified + unmodified < 1000 || (modified/unmodified > this.threshold && modified + unmodified >= 1000)) { // stop als er genoeg iteraties zijn gedaan (>1000) en de ratio modified:unmodified laag is
             // Choose a random pixel and a random color for that pixel
             randomX = this.randomGenerator.nextInt(newImage.getWidth());
             randomY = this.randomGenerator.nextInt(newImage.getHeight());
@@ -111,25 +112,31 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
 
             if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
                 newImage.set(randomX, randomY, randomColorValue);
-                success ++;
+                System.out.println("m");
+                modified ++;
             } else{
-                fail ++;
+                System.out.println("u");
+                
+                unmodified ++;
             }
-            if (i % 1000 == 0){
-                System.out.println("Iteration " + i);
-                System.out.println("success = " + success);
-                System.out.println("fail = " + fail);
-                if (fail > 0){
-                    System.out.println("ratio success/fail= " + (float)success / (float)fail);
-                }
-                System.out.println("");
-            }
+            
+            System.out.println(modified + unmodified);
+            System.out.println(modified/unmodified);
+//            if (i % 1000 == 0){
+//                System.out.println("Iteration " + i);
+//                System.out.println("success = " + success);
+//                System.out.println("fail = " + fail);
+//                if (fail > 0){
+//                    System.out.println("ratio success/fail= " + (float)success / (float)fail);
+//                }
+//                System.out.println("");
+//            }
 
             //new ImagePlus(newImage);
         }
 
         // Create new output image with title.
-        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor + "," + this.iterations, newImage);
+        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor, newImage);
 
         // Make new image window in ImageJ and set the window visible.
         ImageWindow outputWindow = new ImageWindow(outputImage);
@@ -302,7 +309,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 2);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
-        gd.addNumericField("iterations (temporary)", this.iterations, 0);
+        gd.addNumericField("threshold modified/unmodified(temporary)", this.threshold, 2);
         gd.addDialogListener(this);
 
         // previewing is true while showing the dialog
@@ -330,7 +337,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.darkCountRate = (float) gd.getNextNumber();
         this.regularizationFactor = (float) gd.getNextNumber();
-        this.iterations = (int) gd.getNextNumber();
+        this.threshold = (int) gd.getNextNumber();
 
         // Check if given arguments are correct.
         if (this.darkCountRate < 0) {
@@ -340,9 +347,6 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
             this.regularizationFactor = 0;
         } else if (this.regularizationFactor > 1){
             this.regularizationFactor = 1;
-        }
-        if (this.iterations < 0) {
-            this.iterations = 1;
         }
 
         return (!gd.invalidNumber());
