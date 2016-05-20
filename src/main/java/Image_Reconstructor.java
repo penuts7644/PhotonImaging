@@ -1,9 +1,29 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/**
+ *
+ * @author lscheffer
+ */
 
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.DialogListener;
+import ij.gui.GenericDialog;
+import ij.gui.ImageWindow;
+import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
+import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
+import java.awt.AWTEvent;
+import java.awt.Label;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
@@ -17,22 +37,25 @@ import org.apache.commons.math3.util.CombinatoricsUtils;
  *
  * @author lonneke
  */
-public class Image_Reconstructor implements PlugInFilter {
+public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener {
     /** */
-    private int dctBlockSize = 8;
-    private float darkCountRate = 0;
+    private int dctBlockSize = 12;
+    private float darkCountRate = (float)0.1;
     private float regularizationFactor = (float)0.5;
-    /* breedte = breedte - (breedte % dctBlockSize)*/ 
-    private int outputWidth;
-    private int outputHeigth;
     private ImagePlus imp;
-    /** The matrix containing all original pixel values. */
-    private int[][] originalMatrix;
+
+    private int nPasses;
+    private int iterations = 10000;
+
+    private boolean previewing = false;
+
+    private Random randomGenerator;
+
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16; // DOES 32??? ?????????????????????????????????????????????????????????????
-    
-    
+
+
     @Override
     public int setup(String arg, ImagePlus imp) {
         // If arg is about, display help message and quit.
@@ -42,77 +65,132 @@ public class Image_Reconstructor implements PlugInFilter {
         }
 
         this.imp = imp;
-        this.outputHeigth = this.imp.getHeight() - (this.imp.getHeight() % this.dctBlockSize);
-        this.outputWidth = this.imp.getWidth()- (this.imp.getWidth()% this.dctBlockSize);
-        this.originalMatrix = new int[this.outputWidth][this.outputHeigth];
-        
+        this.randomGenerator = new Random();
+
         return this.flags;
     }
 
     @Override
     public void run(ImageProcessor ip) {
-        int[][] bestMatrix;
-        int[][] alteredMatrix;
-        float bestMerit;
-        float newMerit;
-        
-        bestMatrix = new int[this.outputWidth][this.outputHeigth];
-        alteredMatrix = new int[this.outputWidth][this.outputHeigth];
-        
-        // Copy all values from the imageprocessor to the matrix
-        // This is not the same as originalMatrix = ip.getIntArray(), because the originalMatrix might be smaller (see setup)
-        // Also create a 'best matrix', which is identical to the original matrix in the beginning
-        this.copyMatrixValues(this.originalMatrix, ip.getIntArray());
-        this.copyMatrixValues(bestMatrix, this.originalMatrix);
-        
-//        for (int i=0; i < this.originalMatrix.length; i++){
-//            for (int j=0; j < this.originalMatrix[0].length; j++){
-//                this.originalMatrix[i][j] = ip.getPixel(i, j);
-//                bestMatrix[i][j] = this.originalMatrix[i][j];
-//            }
-//        }
-        
-        
-        this.calculateMatrixSparsity(bestMatrix);
+        int[][] originalMatrixPart;
+        int[][] modifiedMatrixPart;
+        int randomX;
+        int randomY;
+        int randomColorValue;
+        int maxColor;
+        int minColor;
 
-        bestMerit = calculateMerit(bestMatrix);
+        ImageProcessor newImage = ip.duplicate();
+
+        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+        int midpoint = this.dctBlockSize / 2 - 1;
         
-        while (true){
-            this.copyMatrixValues(alteredMatrix, bestMatrix);
-            this.changeMatrixRandomly(alteredMatrix);
-            newMerit = this.calculateMerit(alteredMatrix);
-            if (newMerit > bestMerit){
-                this.copyMatrixValues(bestMatrix, alteredMatrix);
-                bestMerit = newMerit;
+        int success = 0;
+        int fail = 0;
+
+
+        for (int i = 0; i < this.iterations; i++) {
+            // Choose a random pixel and a random color for that pixel
+            randomX = this.randomGenerator.nextInt(newImage.getWidth());
+            randomY = this.randomGenerator.nextInt(newImage.getHeight());
+            minColor = newImage.get(randomX, randomY); // new image of original image?
+            maxColor = (minColor + 1) * 2;
+            randomColorValue = this.randomGenerator.nextInt(maxColor - minColor) + minColor;
+
+            // Get the part of the original matrix around the randomly selected x and y,
+            // from both the original and modified matrix.
+//            this.getMatrixPartValues(newImage.getIntArray(), originalMatrixPart, randomX, randomY);
+//            this.copyMatrixValues(originalMatrixPart, modifiedMatrixPart);
+            // DEZE VERSIE MOGELIJK BETER WANT ORIGINAL MATRIX IS DAADWERKELIJK HET ORIGINEEL EN NIET DE STEEDS GEUPDATETE VARIANT
+            this.getMatrixPartValues(ip.getIntArray(), originalMatrixPart, randomX, randomY);
+            this.getMatrixPartValues(newImage.getIntArray(), modifiedMatrixPart, randomX, randomY);
+
+            // Modify the modifiedMatrixPart
+            modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
+
+            if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
+                newImage.set(randomX, randomY, randomColorValue);
+                success ++;
+            } else{
+                fail ++;
             }
+            if (i % 1000 == 0){
+                System.out.println("Iteration " + i);
+                System.out.println("success = " + success);
+                System.out.println("fail = " + fail);
+                if (fail > 0){
+                    System.out.println("ratio success/fail= " + (float)success / (float)fail);
+                }
+                System.out.println("");
+            }
+
+            //new ImagePlus(newImage);
         }
-        
-        // aan het eind: bestMatrix terugberekenen naar plaatje
+
+        // Create new output image with title.
+        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor + "," + this.iterations, newImage);
+
+        // Make new image window in ImageJ and set the window visible.
+        ImageWindow outputWindow = new ImageWindow(outputImage);
+        outputWindow.setVisible(true);
+
     }
-    
+
+    /**
+     * Copy a part of the source matrix, given a midpoint and new matrix size.
+     * All coordinates outside the source matrix are filled in with zero.
+     *
+     * @param sourceMatrix the original matrix to copy from
+     * @param matrixPart the partial matrix to be filled
+     * @param midX the midpoint on the x axis of the new matrix in the original matrix
+     * @param midY the midpoint on the y axis of the new matrix in the original matrix
+     */
+    public void getMatrixPartValues(final int[][] sourceMatrix, final int[][] matrixPart,
+                                    final int midX, final int midY) {
+        int startX = midX - (matrixPart.length / 2) + 1;
+        int startY = midY - (matrixPart[0].length / 2) + 1;
+
+        int i = 0;
+        int j = 0;
+
+        // Loop through the part of the original matrix that must be copied
+        for (int x = startX; x < (startX + matrixPart.length); x++, i++) {
+            for (int y = startY; y < (startY + matrixPart[0].length); y++, j++) {
+                // try to copy the value, if the index is out of bounds, set the value to zero
+                try {
+                    matrixPart[i][j] = sourceMatrix[x][y];
+                } catch (ArrayIndexOutOfBoundsException aiex) {
+                    matrixPart[i][j] = 0;
+                }
+            }
+            j = 0;
+        }
+    }
+
     /**
      * if the source matrix is bigger than the new matrix, only the part that fits inside the new matrix is copied
-     * if the source matrix is smaller, the unknown values are filled in with zero
-     * 
-     * @param newMatrix
-     * @param sourceMatrix 
+     * if the source matrix is smaller, the unknown values are filled in with zero.
+     *
+     * @param sourceMatrix the matrix that the data is copied from
+     * @param newMatrix    the matrix that the data is copied to
      */
-    public void copyMatrixValues(int[][] newMatrix, int[][] sourceMatrix){
-        for (int i=0; i<newMatrix.length; i++){
-            for (int j=0; j<newMatrix[0].length; j++){
-                try{
+    public void copyMatrixValues(final int[][] sourceMatrix, int[][] newMatrix) { // WORDT DEZE NOG GEBRUIKT? KIJKEN VOORDAT JE HEM INLEVERT
+        for (int i = 0; i < newMatrix.length; i++) {
+            for (int j = 0; j < newMatrix[0].length; j++) {
+                try {
                     newMatrix[i][j] = sourceMatrix[i][j];
-                } catch (ArrayIndexOutOfBoundsException aiex){
+                } catch (ArrayIndexOutOfBoundsException aiex) {
                     newMatrix[i][j] = 0;
                 }
-                
+
             }
         }
-        
+
     }
-    
-    
-    
+
+
+
     /**
      * This method displays the about information of the plug-in.
      */
@@ -122,75 +200,53 @@ public class Image_Reconstructor implements PlugInFilter {
         );
     }
 
-    private float calculateMerit(int[][] modifiedMatrix) {
-        return this.calculateLogLikelihood(modifiedMatrix) - this.regularizationFactor * this.calculateMatrixSparsity(modifiedMatrix);
+    private float calculateMerit(final int[][] originalMatrix, final int[][] modifiedMatrix) {
+        return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor * this.calculateMatrixSparsity(modifiedMatrix);
     }
-    
-    
-//            double logLikelihood = 0;
-//        
-//        // testen of modifiedimage en eigen photoncountmatrix even groot zijn
-//        // anders exceptie?
-//
-//        for (int i = 0; i < this.photonCountMatrix.length; i++){
-//            for (int j = 0; i < this.photonCountMatrix[0].length; i++){
-//                logLikelihood += (Math.log(modifiedImage[i][j] + this.darkCountRate) 
-//                        - (modifiedImage[i][j] + this.darkCountRate) 
-//                        - Math.log(CombinatoricsUtils.factorial(this.photonCountMatrix[i][j]))); // logfactorial? geeft dit dezelfde output?
-//                // LET OP KLOPT NIET VOLGENS MIJ (moet je niet origineel vergelijken met nieuw???)
-//            }
-//        }
-//        
-//        return logLikelihood;
-    
-    private float calculateLogLikelihood(int[][] modifiedMatrix){
+
+
+    private float calculateLogLikelihood(final int[][] originalMatrix, final int[][] modifiedMatrix){
         float logLikelihood = 0;
-        
+
         // testen of modifiedimage en eigen photoncountmatrix even groot zijn
         // anders exceptie?
         // of ergens anders testen, je weet vrij zeker dat het goed is al..
-        if (this.originalMatrix.length != modifiedMatrix.length 
-                || this.originalMatrix[0].length != modifiedMatrix[0].length){
+        if (originalMatrix.length != modifiedMatrix.length
+                || originalMatrix[0].length != modifiedMatrix[0].length){
             throw new IndexOutOfBoundsException("Your original matrix and modified matrix do not have the same size");
         }
-        
-        
-        try {
-            for (int i = 0; i < this.originalMatrix.length; i++){
-                for (int j = 0; i < this.originalMatrix[0].length; i++){
-                    logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate) 
-                            - (modifiedMatrix[i][j] + this.darkCountRate) 
-                            - Math.log(CombinatoricsUtils.factorial(this.originalMatrix[i][j]))); // logfactorial? geeft dit dezelfde output?
-                    // NOG EVEN GOED UITZOEKEN HOE DEZE FORMULE ECHT WERKT!
-                }
+
+        for (int i = 0; i < originalMatrix.length; i++){
+            for (int j = 0; i < originalMatrix[0].length; i++){
+                logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate)
+                        - (modifiedMatrix[i][j] + this.darkCountRate)
+                        - CombinatoricsUtils.factorialLog(originalMatrix[i][j]));
             }
-        } catch (MathArithmeticException ex){
-            System.out.println("hoi");
-            
         }
+
         return logLikelihood;
-        
+
     }
-    
-    private float calculateMatrixSparsity(int[][] matrix){
+
+    private float calculateMatrixSparsity(final int[][] matrix){
         double sumAbsoluteCoefficients = 0;
         double sumSquaredAbsoluteCoefficients = 0;
         double[][] dctInputMatrix;
         double[][] dctOutputMatrix;
-        
+
         dctInputMatrix = new double[this.dctBlockSize][this.dctBlockSize];
-        
-//        
+
+//
         DCT dct = new DCT(this.dctBlockSize);
 //        dct.forwardDCT((double[][])new int[8][8]);
-        
+
         for (int matrixWidth=0; matrixWidth < matrix.length; matrixWidth += this.dctBlockSize){
             for (int matrixHeigth=0; matrixHeigth < matrix[0].length; matrixHeigth += this.dctBlockSize){
                 // Create the DCT input matrix (N x N part cut out of the full matrix)
                 for (int partWidth = matrixWidth; partWidth < (matrixWidth + this.dctBlockSize); partWidth++){
                     for (int partHeigth = matrixHeigth; partHeigth < (matrixHeigth + this.dctBlockSize); partHeigth ++){
                         dctInputMatrix[partWidth-matrixWidth][partHeigth-matrixHeigth] = (double) matrix[partWidth][partHeigth];
-                        
+
                     }
                 }
                 // perform the direct cosine transform
@@ -201,42 +257,18 @@ public class Image_Reconstructor implements PlugInFilter {
                         sumSquaredAbsoluteCoefficients += Math.pow(Math.abs(dctOutputMatrix[dtcWidth][dtcHeigth]), 2);
                     }
                 }
-                
+
             }
         }
 
-
-//        for (int i=0; i < matrix.length; i += this.dctBlockSize){
-//            for (int j=0; j < matrix[0].length; j += this.dctBlockSize){
-//                System.out.printf("\nbreedte " + i + "tot" + (i + this.dctBlockSize) + "\n");
-//                System.out.printf("\nhoogte " + j + "tot" + (j + this.dctBlockSize) + "\n");
-//                for (int x = i; x < (i + this.dctBlockSize); x++){
-//                    for (int y = j; y < (j + this.dctBlockSize); y ++){
-//                        dctInputMatrix[x-i][y-j] = (double) matrix[x][y];
-//                        System.out.printf(dctInputMatrix[x-i][y-j] + " ");
-////                            System.out.printf(x + "," + y + " ");
-//                    }
-//                    System.out.printf("\n");
-//                }
-//                
-//            }
-//        }
-        
-        
-        
-//        for (int i = 0; i < matrix.length; i++){
-//            sumAbsoluteCoefficients += Math.abs(coefficientsOfSpatialFrequencies[i]);
-//            sumSquaredAbsoluteCoefficients += Math.pow(Math.abs(coefficientsOfSpatialFrequencies[i]), 2);
-//        }
-        
         return (float)(Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
     }
 
     private void changeMatrixRandomly(int[][] matrix) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        matrix[this.randomGenerator.nextInt(matrix.length)][this.randomGenerator.nextInt(matrix[0].length)] += 2;
     }
-    
-    
+
+
 
     public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
@@ -244,9 +276,8 @@ public class Image_Reconstructor implements PlugInFilter {
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
         String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
         System.setProperty("plugins.dir", pluginsDir);
-        
-        //System.out.println(CombinatoricsUtils.factorial(100));
-        
+
+
 
         // start ImageJ
         new ImageJ();
@@ -263,5 +294,61 @@ public class Image_Reconstructor implements PlugInFilter {
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }
-    
+
+    @Override
+    public int showDialog(ImagePlus imp, String command, PlugInFilterRunner pfr) {
+        GenericDialog gd = new GenericDialog("Reconstruct Image");
+
+        // Add fields to dialog.
+        gd.addNumericField("Dark count rate", this.darkCountRate, 2);
+        gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
+        gd.addNumericField("iterations (temporary)", this.iterations, 0);
+        gd.addDialogListener(this);
+
+        // previewing is true while showing the dialog
+        this.previewing = true;
+        gd.showDialog();
+        if (gd.wasCanceled()) {
+            return PlugInFilter.DONE;
+        }
+        this.previewing = false;
+
+        // check whether the user has changed the items
+        if (!this.dialogItemChanged(gd, null)) {
+            return PlugInFilter.DONE;
+        }
+
+        return this.flags;
+    }
+
+    @Override
+    public void setNPasses(final int nPasses) {
+        this.nPasses = nPasses;
+    }
+
+    @Override
+    public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
+        this.darkCountRate = (float) gd.getNextNumber();
+        this.regularizationFactor = (float) gd.getNextNumber();
+        this.iterations = (int) gd.getNextNumber();
+
+        // Check if given arguments are correct.
+        if (this.darkCountRate < 0) {
+            this.darkCountRate = 0;
+        }
+        if (this.regularizationFactor < 0) {
+            this.regularizationFactor = 0;
+        } else if (this.regularizationFactor > 1){
+            this.regularizationFactor = 1;
+        }
+        if (this.iterations < 0) {
+            this.iterations = 1;
+        }
+
+        return (!gd.invalidNumber());
+    }
+
+
+
+
 }
