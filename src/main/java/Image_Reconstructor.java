@@ -88,7 +88,17 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         
         float modified = 1;
         float unmodified = 1;
-
+        
+        long startTime = System.nanoTime();
+        boolean img90 = true;
+        boolean img80 = true;
+        boolean img70 = true;
+        boolean img60 = true;
+        boolean img50 = true;
+        boolean img40 = true;
+        boolean img30 = true;
+        boolean img20 = true;
+        boolean img10 = true;
         
         
         while (modified + unmodified < 1000 || (modified/unmodified > this.threshold && modified + unmodified >= 1000)) { // stop als er genoeg iteraties zijn gedaan (>1000) en de ratio modified:unmodified laag is
@@ -96,7 +106,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
             randomX = this.randomGenerator.nextInt(newImage.getWidth());
             randomY = this.randomGenerator.nextInt(newImage.getHeight());
             minColor = newImage.get(randomX, randomY); // new image of original image?
-            maxColor = (minColor + 1) * 2;
+            maxColor = (int)((double)(minColor + 1) * 3);
             randomColorValue = this.randomGenerator.nextInt(maxColor - minColor) + minColor;
 
             // Get the part of the original matrix around the randomly selected x and y,
@@ -112,16 +122,42 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
 
             if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
                 newImage.set(randomX, randomY, randomColorValue);
-                System.out.println("m");
                 modified ++;
             } else{
-                System.out.println("u");
-                
                 unmodified ++;
             }
             
-            System.out.println(modified + unmodified);
-            System.out.println(modified/unmodified);
+            if (modified/unmodified < 0.9 && img90 && (modified + unmodified > 1000)){
+                img90 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.8 && img80 && (modified + unmodified > 1000)){
+                img80 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.7 && img70 && (modified + unmodified > 1000)){
+                img70 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.6 && img60 && (modified + unmodified > 1000)){
+                img60 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.5 && img50 && (modified + unmodified > 1000)){
+                img50 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.4 && img40 && (modified + unmodified > 1000)){
+                img40 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.3 && img30 && (modified + unmodified > 1000)){
+                img30 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.2 && img20 && (modified + unmodified > 1000)){
+                img20 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } else if (modified/unmodified < 0.1 && img10 && (modified + unmodified > 1000)){
+                img10 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+            } 
+            
+//            System.out.println(modified + unmodified);
+//            System.out.println(modified/unmodified);
 //            if (i % 1000 == 0){
 //                System.out.println("Iteration " + i);
 //                System.out.println("success = " + success);
@@ -135,13 +171,20 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
             //new ImagePlus(newImage);
         }
 
-        // Create new output image with title.
-        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor, newImage);
+//        // Create new output image with title.
+//        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor, newImage);
+//
+//        // Make new image window in ImageJ and set the window visible.
+//        ImageWindow outputWindow = new ImageWindow(outputImage);
+//        outputWindow.setVisible(true);
 
-        // Make new image window in ImageJ and set the window visible.
+    }
+    
+    
+    private void createOutputImage(ImageProcessor ip, String name) {
+        ImagePlus outputImage = new ImagePlus(name, ip);
         ImageWindow outputWindow = new ImageWindow(outputImage);
         outputWindow.setVisible(true);
-
     }
 
     /**
@@ -153,7 +196,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
      * @param midX the midpoint on the x axis of the new matrix in the original matrix
      * @param midY the midpoint on the y axis of the new matrix in the original matrix
      */
-    public void getMatrixPartValues(final int[][] sourceMatrix, final int[][] matrixPart,
+    private void getMatrixPartValues(final int[][] sourceMatrix, final int[][] matrixPart,
                                     final int midX, final int midY) {
         int startX = midX - (matrixPart.length / 2) + 1;
         int startY = midY - (matrixPart[0].length / 2) + 1;
@@ -175,26 +218,26 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         }
     }
 
-    /**
-     * if the source matrix is bigger than the new matrix, only the part that fits inside the new matrix is copied
-     * if the source matrix is smaller, the unknown values are filled in with zero.
-     *
-     * @param sourceMatrix the matrix that the data is copied from
-     * @param newMatrix    the matrix that the data is copied to
-     */
-    public void copyMatrixValues(final int[][] sourceMatrix, int[][] newMatrix) { // WORDT DEZE NOG GEBRUIKT? KIJKEN VOORDAT JE HEM INLEVERT
-        for (int i = 0; i < newMatrix.length; i++) {
-            for (int j = 0; j < newMatrix[0].length; j++) {
-                try {
-                    newMatrix[i][j] = sourceMatrix[i][j];
-                } catch (ArrayIndexOutOfBoundsException aiex) {
-                    newMatrix[i][j] = 0;
-                }
-
-            }
-        }
-
-    }
+//    /**
+//     * if the source matrix is bigger than the new matrix, only the part that fits inside the new matrix is copied
+//     * if the source matrix is smaller, the unknown values are filled in with zero.
+//     *
+//     * @param sourceMatrix the matrix that the data is copied from
+//     * @param newMatrix    the matrix that the data is copied to
+//     */
+//    private void copyMatrixValues(final int[][] sourceMatrix, int[][] newMatrix) { // WORDT DEZE NOG GEBRUIKT? KIJKEN VOORDAT JE HEM INLEVERT
+//        for (int i = 0; i < newMatrix.length; i++) {
+//            for (int j = 0; j < newMatrix[0].length; j++) {
+//                try {
+//                    newMatrix[i][j] = sourceMatrix[i][j];
+//                } catch (ArrayIndexOutOfBoundsException aiex) {
+//                    newMatrix[i][j] = 0;
+//                }
+//
+//            }
+//        }
+//
+//    }
 
 
 
@@ -309,7 +352,6 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 2);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
-        gd.addNumericField("threshold modified/unmodified(temporary)", this.threshold, 2);
         gd.addDialogListener(this);
 
         // previewing is true while showing the dialog
@@ -337,7 +379,6 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.darkCountRate = (float) gd.getNextNumber();
         this.regularizationFactor = (float) gd.getNextNumber();
-        this.threshold = (int) gd.getNextNumber();
 
         // Check if given arguments are correct.
         if (this.darkCountRate < 0) {
