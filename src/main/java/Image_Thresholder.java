@@ -35,7 +35,7 @@ import java.util.TreeSet;
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
-public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
+public final class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
     /** The matrix containing all pixel values. */
     private int[][] pixelValueMatrix;
@@ -88,7 +88,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     }
 
     /**
-     * The showDialog method will be ran after the setup and creates the dialog window and shows it.
+     * The showDialog method will be run after the setup and creates the dialog window and shows it.
      *
      * Dialog window has support for noise tolerance value, preprocessing step and live preview (run is executed once).
      *
@@ -174,10 +174,8 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     }
 
     /**
-     * Executed method when selected.
-     *
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji. Run
-     * method needs to be overridden.
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
+     * This method does most of the work, calls all other methods in the right order.
      *
      * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)

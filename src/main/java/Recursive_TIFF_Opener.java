@@ -36,7 +36,7 @@ import java.nio.file.Paths;
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
-public class Recursive_TIFF_Opener implements PlugIn {
+public final class Recursive_TIFF_Opener implements PlugIn {
 
     /** The directory path given by user. */
     private String dir = "";
@@ -48,13 +48,11 @@ public class Recursive_TIFF_Opener implements PlugIn {
     private int winWidth = 0;
 
     /**
-     * Executed method when selected.
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
+     * This method does most of the work, calls all other methods in the right order.
      *
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji. Run
-     * method needs to be overridden.
-     *
-     * @param arg String telling run what to do.
-     * @see ij.plugin.filter.PlugIn#run(ij.process.ImageProcessor)
+     * @param ip image processor
+     * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
     public void run(final String arg) {

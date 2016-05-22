@@ -49,7 +49,7 @@ import java.util.List;
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
-public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListener {
+public final class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListener {
 
     /** The ImagePlus given by the user. */
     protected ImagePlus image;
@@ -117,7 +117,7 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * The showDialog method will be ran after the setup and creates the dialog window and shows it.
+     * The showDialog method will be run after the setup and creates the dialog window and shows it.
      *
      * Dialog window has support for noise tolerance value, preprocessing step and live preview (run is executed once).
      *
@@ -196,12 +196,11 @@ public class Photon_Image_Processor implements ExtendedPlugInFilter, DialogListe
     }
 
     /**
-     * Executed method when selected.
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
+     * This method does most of the work, calls all other methods in the right order.
      *
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji. Run
-     * method needs to be overridden.
-     *
-     * @param ip Image processor.
+     * @param ip image processor
+     * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
     public void run(final ImageProcessor ip) {
