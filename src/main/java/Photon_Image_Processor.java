@@ -430,7 +430,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      *
      * @param args unused.
      */
-    private static void main(final String[] args) {
+    public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Photon_Image_Processor.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();

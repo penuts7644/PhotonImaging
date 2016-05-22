@@ -467,7 +467,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      *
      * @param args unused.
      */
-    private static void main(final String[] args) {
+    public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();

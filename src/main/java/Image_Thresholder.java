@@ -231,7 +231,7 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      *
      * @param args unused
      */
-    private static void main(final String[] args) {
+    public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
