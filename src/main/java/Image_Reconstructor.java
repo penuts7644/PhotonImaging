@@ -162,24 +162,17 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      */
     @Override
     public void run(final ImageProcessor ip) {
-        int[][] originalMatrixPart;
-        int[][] modifiedMatrixPart;
-        int randomX;
-        int randomY;
-        int randomColorValue;
-        float randomColorMultiplier;
+        boolean wasModified;
+        float passedChanges;
+        float rejectedChanges;
 
         // Duplicate the original image to create a new output image.
         ImageProcessor newImage = ip.duplicate();
 
-        // Variables used for comparing the modified image to the original.
-        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-        int midpoint = this.dctBlockSize / 2 - 1;
-        
         // The ratio between passed modifications and rejected modifications determines when to quit.
-        float passedChanges = 1;
-        float rejectedChanges = 1;
+        // They are set to 1 instead of 0, because ratio 0 / 0 can not be calculated.
+        passedChanges = 1;
+        rejectedChanges = 1;
         
         // DIT IS ALLEMAAL VOOR DEBUGGEN MOET STRAKS ALLEMAAL WEGGGGGGGGGG
         long startTime = System.nanoTime();
@@ -200,23 +193,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         while (passedChanges + rejectedChanges < 1000 
                 || (passedChanges + rejectedChanges >= 1000 && passedChanges/rejectedChanges > this.thresholdRatioChanges)) { 
             
-            // Choose a random pixel and a random modification for that pixel (pixelvalue + 1 * random value between 1 and 2)
-            randomX = this.randomGenerator.nextInt(newImage.getWidth());
-            randomY = this.randomGenerator.nextInt(newImage.getHeight());
-            randomColorMultiplier = this.randomGenerator.nextFloat() + (float)1.0;
-            randomColorValue = Math.round((float)(newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
+            wasModified = this.tryToModifyImage(ip, newImage);
             
-            // Get the part of the original matrix around the randomly selected x and y,
-            // from both the original and modified matrix.
-            this.getMatrixPartValues(ip.getIntArray(), originalMatrixPart, randomX, randomY);
-            this.getMatrixPartValues(newImage.getIntArray(), modifiedMatrixPart, randomX, randomY);
-
-            // Modify the modifiedMatrixPart
-            modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
-
-            // If the random change is better, the outcome of the merit function is higher, and the change should be made to the new image
-            if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
-                newImage.set(randomX, randomY, randomColorValue);
+            if (wasModified) {
                 passedChanges ++;
             } else{
                 rejectedChanges ++;
@@ -266,6 +245,42 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
     }
     
+    private boolean tryToModifyImage(ImageProcessor originalImage, ImageProcessor newImage){
+        int randomX;
+        int randomY;
+        int randomColorValue;
+        float randomColorMultiplier;
+        int[][] originalMatrixPart;
+        int[][] modifiedMatrixPart;
+        
+        // Choose a random pixel and a random modification for that pixel (pixelvalue + 1 * random value between 1 and 2)
+        randomX = this.randomGenerator.nextInt(newImage.getWidth());
+        randomY = this.randomGenerator.nextInt(newImage.getHeight());
+        randomColorMultiplier = this.randomGenerator.nextFloat() + (float)1.0;
+        randomColorValue = Math.round((float)(newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
+        
+        // Create the matrices used to calculate the differences between original and modified image.
+        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+        int midpoint = this.dctBlockSize / 2 - 1;
+        
+        // Get the part of the original matrix around the randomly selected x and y,
+        // from both the original and modified matrix.
+        this.getMatrixPartValues(originalImage.getIntArray(), originalMatrixPart, randomX, randomY);
+        this.getMatrixPartValues(newImage.getIntArray(), modifiedMatrixPart, randomX, randomY);
+
+        // Modify the modifiedMatrixPart
+        modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
+
+        // If the random change is better, the outcome of the merit function is higher, and the change should be made to the new image
+        if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
+            newImage.set(randomX, randomY, randomColorValue);
+            return true; // true, because the image was modified
+        } else{
+            return false; // false, because the image was not modified
+        }
+        
+    }
     
     private void createOutputImage(ImageProcessor ip, String name) {
         ImagePlus outputImage = new ImagePlus(name, ip);
