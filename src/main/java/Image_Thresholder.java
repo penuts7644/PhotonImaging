@@ -56,12 +56,12 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
     /**
      * Setup method as initializer.
      *
-     * Setup method is the initializer for this class and will always be ran first. Arguments necessary can be given
+     * Setup method is the initializer for this class and will always be run first. Arguments can be given
      * here. Setup method needs to be overridden.
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
-     * @return None if help shown, else plug-in does gray 8-bit and 16-bit image.
+     * @return flag 'DONE' if help shown, else the general plug in flags
      */
     @Override
     public int setup(final String arg, final ImagePlus imp) {
@@ -233,7 +233,7 @@ public class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
      *
      * @param args unused
      */
-    public static void main(final String[] args) {
+    private static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();

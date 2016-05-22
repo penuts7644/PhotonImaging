@@ -155,7 +155,7 @@ public class Recursive_TIFF_Opener implements PlugIn {
      *
      * @param args unused
      */
-    public static void main(final String[] args) {
+    private static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();

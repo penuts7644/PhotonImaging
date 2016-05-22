@@ -38,24 +38,37 @@ import org.apache.commons.math3.util.CombinatoricsUtils;
  * @author lonneke
  */
 public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener {
-    /** */
+    /** The ImagePlus given by the user. */
+    protected ImagePlus imp;
+    /** The number of passes for the progress bar, default is 0. */
+    private int nPasses = 0;
+    /** The size for the DCT matrix to use. */
     private int dctBlockSize = 12;
+    /** The estimated dark count rate of the camera. */
     private float darkCountRate = (float)0.1;
+    /** The regularization factor (lambda). Used to determine the importance of log likelihood versus image sparsity. */
     private float regularizationFactor = (float)0.5;
-    private ImagePlus imp;
-
-    private int nPasses;
-    private float threshold = (float)0.3;
-
+    /** The threshold ratio of passed changes : rejected changes in the new image. */
+    private float thresholdRatioChanges = (float)0.09999;
+    /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
-
+    /** The Random used to choose a (pseudo)random pixel and modify it (pseudo)randomly. */
     private Random randomGenerator;
 
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16; // DOES 32??? ?????????????????????????????????????????????????????????????
 
-
+    /**
+     * Setup method as initializer.
+     *
+     * Setup method is the initializer for this class and will always be run first. Arguments can be given
+     * here. Setup method needs to be overridden.
+     *
+     * @param arg String telling setup what to do.
+     * @param imp ImagePlus containing the displayed stack/image.
+     * @return flag 'DONE' if help shown, else the general plug in flags
+     */
     @Override
     public int setup(String arg, ImagePlus imp) {
         // If arg is about, display help message and quit.
@@ -77,8 +90,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         int randomX;
         int randomY;
         int randomColorValue;
-        int maxColor;
-        int minColor;
+        float randomColorMultiplier;
 
         ImageProcessor newImage = ip.duplicate();
 
@@ -101,14 +113,13 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
         boolean img10 = true;
         
         
-        while (modified + unmodified < 1000 || (modified/unmodified > this.threshold && modified + unmodified >= 1000)) { // stop als er genoeg iteraties zijn gedaan (>1000) en de ratio modified:unmodified laag is
+        while (modified + unmodified < 1000 || (modified/unmodified > this.thresholdRatioChanges && modified + unmodified >= 1000)) { // stop als er genoeg iteraties zijn gedaan (>1000) en de ratio modified:unmodified laag is
             // Choose a random pixel and a random color for that pixel
             randomX = this.randomGenerator.nextInt(newImage.getWidth());
             randomY = this.randomGenerator.nextInt(newImage.getHeight());
-            minColor = newImage.get(randomX, randomY); // new image of original image?
-            maxColor = (int)((double)(minColor + 1) * 3);
-            randomColorValue = this.randomGenerator.nextInt(maxColor - minColor) + minColor;
-
+            randomColorMultiplier = this.randomGenerator.nextFloat() + (float)1.0;
+            randomColorValue = Math.round((float)(newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
+            
             // Get the part of the original matrix around the randomly selected x and y,
             // from both the original and modified matrix.
 //            this.getMatrixPartValues(newImage.getIntArray(), originalMatrixPart, randomX, randomY);
@@ -129,31 +140,31 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
             
             if (modified/unmodified < 0.9 && img90 && (modified + unmodified > 1000)){
                 img90 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.8 && img80 && (modified + unmodified > 1000)){
                 img80 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.7 && img70 && (modified + unmodified > 1000)){
                 img70 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.6 && img60 && (modified + unmodified > 1000)){
                 img60 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.5 && img50 && (modified + unmodified > 1000)){
                 img50 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.4 && img40 && (modified + unmodified > 1000)){
                 img40 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.3 && img30 && (modified + unmodified > 1000)){
                 img30 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.2 && img20 && (modified + unmodified > 1000)){
                 img20 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } else if (modified/unmodified < 0.1 && img10 && (modified + unmodified > 1000)){
                 img10 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:color tot color*1.5");
+                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
             } 
             
 //            System.out.println(modified + unmodified);
@@ -320,7 +331,7 @@ public class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener
 
 
 
-    public static void main(final String[] args) {
+    private static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Image_Thresholder.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
