@@ -382,6 +382,10 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      */
     public void showAbout() {
         IJ.showMessage("About Image Reconstructor", "<html>"
+            + "<b>This option can be used to reconstruct the output image created by the 'Process Photon Images' "
+            + "option.</b><br>"
+            + "The original image is changed randomly, and the modifications are evaluated. "
+            + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
             + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
