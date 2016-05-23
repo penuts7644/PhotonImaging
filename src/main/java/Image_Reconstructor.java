@@ -1,13 +1,19 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2016 Lonneke Scheffer and Wout van Helvoirt
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- *
- * @author lscheffer
- */
 
 import ij.IJ;
 import ij.ImageJ;
@@ -27,29 +33,33 @@ import java.util.logging.Logger;
 import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 
 /**
+ * Image_Reconstructor
  *
- * @author lonneke
+ * This class can be used to reconstruct the output images of Photon_Image_Processor, if there was not enough input
+ * data available. Parts of the algorithm were derived from the article 'Imaging with a small number of photons'[1].
+ * Random changes are made to the original file, and various formulas from the article are used to tell whether the
+ * changes improved the image.
+ *
+ * 1. Morris, P. A. et al. Imaging with a small number of photons. Nat. Commun. 6:5913 doi: 10.1038/ncomms6913 (2015).
+ *
+ * @author Lonneke Scheffer and Wout van Helvoirt
  */
+
 public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener {
     /** The ImagePlus given by the user. */
     protected ImagePlus imp;
     /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
     /** The size for the DCT matrix to use. */
-    private int dctBlockSize = 12;
+    private final int dctBlockSize = 12;
     /** The estimated dark count rate of the camera. */
-    private float darkCountRate = (float)0.1;
+    private float darkCountRate = (float) 0.1;
     /** The regularization factor (lambda). Used to determine the importance of log likelihood versus image sparsity. */
-    private float regularizationFactor = (float)0.5;
+    private float regularizationFactor = (float) 0.5;
     /** The threshold ratio of passed changes : rejected changes in the new image. */
-    private float thresholdRatioChanges = (float)0.09;
+    private float thresholdRatioChanges = (float) 0.3; ////////////////////////////////////MOET DIT DOOR DE GEBRUIKER GEGEVEN KUNNEN WORDEN IN DIALOG?
     /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
     /** The Random used to choose a (pseudo)random pixel and modify it (pseudo)randomly. */
@@ -57,7 +67,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
-            | PlugInFilter.DOES_16; // DOES 32??? ?????????????????????????????????????????????????????????????
+            | PlugInFilter.DOES_16;
 
     /**
      * Setup method as initializer.
@@ -100,6 +110,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 2);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
+        gd.addNumericField("Modification ratio threshold", this.thresholdRatioChanges, 2);
         gd.addDialogListener(this);
 
         // previewing is true while showing the dialog
@@ -117,7 +128,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
         return this.flags;
     }
-    
+
     /**
      * This method checks whether the user has changed the input fields, and saves the new values.
      *
@@ -129,6 +140,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.darkCountRate = (float) gd.getNextNumber();
         this.regularizationFactor = (float) gd.getNextNumber();
+        this.thresholdRatioChanges = (float) gd.getNextNumber();
 
         // Check if given arguments are correct.
         if (this.darkCountRate < 0) {
@@ -136,13 +148,19 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         }
         if (this.regularizationFactor < 0) {
             this.regularizationFactor = 0;
-        } else if (this.regularizationFactor > 1){
+        } else if (this.regularizationFactor > 1) {
             this.regularizationFactor = 1;
+        }
+        
+        if (this.thresholdRatioChanges < 0.05) {
+            this.thresholdRatioChanges = (float) 0.05;
+        } else if (this.thresholdRatioChanges > 0.9) {
+            this.thresholdRatioChanges = (float) 0.9;
         }
 
         return (!gd.invalidNumber());
     }
-    
+
     /**
      * This method tells the the runner the amount of runs get executed.
      *
@@ -152,7 +170,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     public void setNPasses(final int nPasses) {
         this.nPasses = nPasses;
     }
-    
+
     /**
      * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
      * This method does most of the work, calls all other methods in the right order.
@@ -173,68 +191,69 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // They are set to 1 instead of 0, because ratio 0 / 0 can not be calculated.
         passedChanges = 1;
         rejectedChanges = 1;
-        
-        // DIT IS ALLEMAAL VOOR DEBUGGEN MOET STRAKS ALLEMAAL WEGGGGGGGGGG
-        long startTime = System.nanoTime();
-        boolean img90 = true;
-        boolean img80 = true;
-        boolean img70 = true;
-        boolean img60 = true;
-        boolean img50 = true;
-        boolean img40 = true;
-        boolean img30 = true;
-        boolean img20 = true;
-        boolean img10 = true;
-        
+
+//        // DIT IS ALLEMAAL VOOR DEBUGGEN MOET STRAKS ALLEMAAL WEGGGGGGGGGG
+//        long startTime = System.nanoTime();
+//        boolean img90 = true;
+//        boolean img80 = true;
+//        boolean img70 = true;
+//        boolean img60 = true;
+//        boolean img50 = true;
+//        boolean img40 = true;
+//        boolean img30 = true;
+//        boolean img20 = true;
+//        boolean img10 = true;
+
         // Keep making changes:
         //   - for at least 1000 iterations (because the ratio is so unstable in the beginning)
-        //   - after that, keep making changes while the ratio passed changes : rejected changes is not below the threshold
+        //   - after that, keep making changes while the ratio passedChanges:rejectedChanges is not below the threshold
         // (This way, the while loop is quit if most changes do not have an effect on the quality of the output image anymore)
-        while (passedChanges + rejectedChanges < 1000 
-                || (passedChanges + rejectedChanges >= 1000 && passedChanges/rejectedChanges > this.thresholdRatioChanges)) { 
-            
-            wasModified = this.tryToModifyImageGradientVersion(ip, newImage);
-            
+        while (passedChanges + rejectedChanges < 1000
+                || (passedChanges + rejectedChanges >= 1000 && passedChanges/rejectedChanges > this.thresholdRatioChanges)) {
+
+            wasModified = this.tryToModifyImage(ip, newImage);
+
             if (wasModified) {
-                passedChanges ++;
-            } else{
-                rejectedChanges ++;
+                passedChanges++;
+            } else {
+                rejectedChanges++;
             }
-            
-            
-            // MISSCHIEN KAN HET STUK BINNEN DE WHILE IN EEN LOSSE FUNCTIE die dan alleen true/false returnt op basis van changepassed of changerejected
-            // ALLEEN VOOR TESTEN, DAARNA VERWIJDEREN
-            if (passedChanges/rejectedChanges < 0.9 && img90 && (passedChanges + rejectedChanges > 1000)){
-                img90 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.8 && img80 && (passedChanges + rejectedChanges > 1000)){
-                img80 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.7 && img70 && (passedChanges + rejectedChanges > 1000)){
-                img70 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.6 && img60 && (passedChanges + rejectedChanges > 1000)){
-                img60 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.5 && img50 && (passedChanges + rejectedChanges > 1000)){
-                img50 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.4 && img40 && (passedChanges + rejectedChanges > 1000)){
-                img40 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.3 && img30 && (passedChanges + rejectedChanges > 1000)){
-                img30 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.2 && img20 && (passedChanges + rejectedChanges > 1000)){
-                img20 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } else if (passedChanges/rejectedChanges < 0.1 && img10 && (passedChanges + rejectedChanges > 1000)){
-                img10 = false;
-                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-            } 
+
+//            // MISSCHIEN KAN HET STUK BINNEN DE WHILE IN EEN LOSSE FUNCTIE die dan alleen true/false returnt op basis van changepassed of changerejected
+//            // ALLEEN VOOR TESTEN, DAARNA VERWIJDEREN
+//            if (passedChanges/rejectedChanges < 0.9 && img90 && (passedChanges + rejectedChanges > 1000)){
+//                img90 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.8 && img80 && (passedChanges + rejectedChanges > 1000)){
+//                img80 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.7 && img70 && (passedChanges + rejectedChanges > 1000)){
+//                img70 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.6 && img60 && (passedChanges + rejectedChanges > 1000)){
+//                img60 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.5 && img50 && (passedChanges + rejectedChanges > 1000)){
+//                img50 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.4 && img40 && (passedChanges + rejectedChanges > 1000)){
+//                img40 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.3 && img30 && (passedChanges + rejectedChanges > 1000)){
+//                img30 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.2 && img20 && (passedChanges + rejectedChanges > 1000)){
+//                img20 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            } else if (passedChanges/rejectedChanges < 0.1 && img10 && (passedChanges + rejectedChanges > 1000)){
+//                img10 = false;
+//                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+//            }
 
         }
         
+        this.createOutputImage(newImage, "Reconstructed Image");
+
         // MOET CREATEOUTPUTIMAGE BLIJVEN BESTAAN ALS LOSSE FUNCTIE OF VERWIJDERD WORDEN?
 //        // Create new output image with title.
 //        ImagePlus outputImage = new ImagePlus("Reconstructed Image:" + this.darkCountRate + "," + this.regularizationFactor, newImage);
@@ -244,26 +263,35 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 //        outputWindow.setVisible(true);
 
     }
-    
-    private boolean tryToModifyImage(ImageProcessor originalImage, ImageProcessor newImage){
+
+    /**
+     * Makes a modification to the input image and tests whether it was an improvement.
+     * If the modification improves the original image, the new image will contain this modification.
+     *
+     * @param originalImage the original input image
+     * @param newImage the created modified image
+     * @return boolean whether the image was modified
+     */
+    private boolean tryToModifyImage(final ImageProcessor originalImage, final ImageProcessor newImage) {
         int randomX;
         int randomY;
         int randomColorValue;
         float randomColorMultiplier;
         int[][] originalMatrixPart;
         int[][] modifiedMatrixPart;
-        
-        // Choose a random pixel and a random modification for that pixel (pixelvalue + 1 * random value between 1 and 2)
+
+        // Choose a random pixel and a random modification for that pixel
+        // ((pixelvalue + 1) * random value between 1 and 2)
         randomX = this.randomGenerator.nextInt(newImage.getWidth());
         randomY = this.randomGenerator.nextInt(newImage.getHeight());
-        randomColorMultiplier = this.randomGenerator.nextFloat() + (float)1.0;
-        randomColorValue = Math.round((float)(newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
-        
+        randomColorMultiplier = this.randomGenerator.nextFloat() + (float) 1.0;
+        randomColorValue = Math.round((float) (newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
+
         // Create the matrices used to calculate the differences between original and modified image.
         originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
         int midpoint = this.dctBlockSize / 2 - 1;
-        
+
         // Get the part of the original matrix around the randomly selected x and y,
         // from both the original and modified matrix.
         this.getMatrixPartValues(originalImage.getIntArray(), originalMatrixPart, randomX, randomY);
@@ -336,8 +364,10 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             modifiedMatrixPart[midpoint+1][midpoint-1] = Math.round((float)(newImage.get(randomX+1, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1));
         } catch (IndexOutOfBoundsException ex) {}
 
-        // If the random change is better, the outcome of the merit function is higher, and the change should be made to the new image
-        if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
+        // If the random change is better, the outcome of the merit function is higher,
+        // and the change should be made to the new image
+        if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart)
+                > this.calculateMerit(originalMatrixPart, originalMatrixPart)) {
             newImage.set(randomX, randomY, randomColorValue);
             
             try{
@@ -369,13 +399,18 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             
             
             return true; // true, because the image was modified
-        } else{
+        } else {
             return false; // false, because the image was not modified
         }
-        
     }
-    
-    private void createOutputImage(ImageProcessor ip, String name) {
+
+    /**
+     * Creates an output image (opened in a new window) of an image processer.
+     *
+     * @param ip the image processor
+     * @param name the name of the new window
+     */
+    private void createOutputImage(final ImageProcessor ip, final String name) {
         ImagePlus outputImage = new ImagePlus(name, ip);
         ImageWindow outputWindow = new ImageWindow(outputImage);
         outputWindow.setVisible(true);
@@ -440,6 +475,10 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      */
     public void showAbout() {
         IJ.showMessage("About Image Reconstructor", "<html>"
+            + "<b>This option can be used to reconstruct the output image created by the 'Process Photon Images' "
+            + "option.</b><br>"
+            + "The original image is changed randomly, and the modifications are evaluated. "
+            + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
             + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
@@ -449,25 +488,25 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * The goal is to maximize the outcome of this merit function. The regularization factor
      * determines the importance of the log likelihood and sparsity compared to one another.
      * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
-     * 
+     *
      * @param originalMatrix part of the original image
      * @param modifiedMatrix part of the modified image
      * @return a merit value for this modified image compared to the original
      */
     private float calculateMerit(final int[][] originalMatrix, final int[][] modifiedMatrix) {
-        return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor 
+        return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor
                 * this.calculateMatrixSparsity(modifiedMatrix);
     }
 
     /**
      * Calculates the log likelihood for the modified matrix given the original matrix.
      * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
-     * 
+     *
      * @param originalMatrix part of the original image
      * @param modifiedMatrix part of the modified image
      * @return the log likelihood
      */
-    private float calculateLogLikelihood(final int[][] originalMatrix, final int[][] modifiedMatrix){
+    private float calculateLogLikelihood(final int[][] originalMatrix, final int[][] modifiedMatrix) {
         float logLikelihood = 0;
 
         // The two matrices must be the same size
@@ -491,20 +530,20 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
     /**
      * Calculates the sparsity of the given matrix, using a Direct Cosine Transform.
-     * The input matrix can be bigger than the DCT size, but if the matrix size is not 
-     * a multiple of the DCT size, the transformation will only be performed on the part of 
+     * The input matrix can be bigger than the DCT size, but if the matrix size is not
+     * a multiple of the DCT size, the transformation will only be performed on the part of
      * the matrix that 'fits' inside a multiple of the DCT size.
-     * 
+     *
      * For instance: an input matrix of size 25x25 will give the same outcome as an input
      * matrix of size 30x30 if the DCT size is 12, since they will both be rounded to a
      * 24x24 matrix.
-     * 
+     *
      * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
-     * 
+     *
      * @param matrix the input matrix
      * @return a measure of the sparsity of the matrix
      */
-    private float calculateMatrixSparsity(final int[][] matrix){
+    private float calculateMatrixSparsity(final int[][] matrix) {
         double sumAbsoluteCoefficients = 0;
         double sumSquaredAbsoluteCoefficients = 0;
         double[][] dctInputMatrix;
@@ -514,26 +553,27 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         DCT dct = new DCT(this.dctBlockSize);
 
         // Loop through the whole matrix, by steps of size DCT block size.
-        for (int matrixWidth=0; matrixWidth < matrix.length; matrixWidth += this.dctBlockSize){
-            for (int matrixHeigth=0; matrixHeigth < matrix[0].length; matrixHeigth += this.dctBlockSize){
+        for (int matrixWidth = 0; matrixWidth < matrix.length; matrixWidth += this.dctBlockSize) {
+            for (int matrixHeigth = 0; matrixHeigth < matrix[0].length; matrixHeigth += this.dctBlockSize) {
                 // Loop through a part of the matrix of size DCT size x DCT size,
                 // and copy the values to a temporary matrix.
-                for (int partWidth = matrixWidth; partWidth < (matrixWidth + this.dctBlockSize); partWidth++){
-                    for (int partHeigth = matrixHeigth; partHeigth < (matrixHeigth + this.dctBlockSize); partHeigth ++){
-                        dctInputMatrix[partWidth-matrixWidth][partHeigth-matrixHeigth] = (double) matrix[partWidth][partHeigth];
+                for (int partWidth = matrixWidth; partWidth < (matrixWidth + this.dctBlockSize); partWidth++) {
+                    for (int partHeigth = matrixHeigth; partHeigth < (matrixHeigth + this.dctBlockSize); partHeigth++) {
+                        dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeigth]
+                                = (double) matrix[partWidth][partHeigth];
 
                     }
                 }
                 // Perform the direct cosine transform on the copied matrix part.
                 dctOutputMatrix = dct.forwardDCT(dctInputMatrix);
-                
+
                 // Get the sum of the absolute coefficients (matrix values),
                 // and the sum of the squared absolute coefficients (matrix values).
                 // These are used in the calculation of P. A. Morris et al.
-                for (int dtcWidth = 0; dtcWidth < dctOutputMatrix.length; dtcWidth ++){
-                    for (int dtcHeigth = 0; dtcHeigth < dctOutputMatrix[0].length; dtcHeigth ++){
-                        sumAbsoluteCoefficients += Math.abs(dctOutputMatrix[dtcWidth][dtcHeigth]);
-                        sumSquaredAbsoluteCoefficients += Math.pow(Math.abs(dctOutputMatrix[dtcWidth][dtcHeigth]), 2);
+                for (double[] dctOutputMatrixRow : dctOutputMatrix) {
+                    for (int dtcHeigth = 0; dtcHeigth < dctOutputMatrix[0].length; dtcHeigth++) {
+                        sumAbsoluteCoefficients += Math.abs(dctOutputMatrixRow[dtcHeigth]);
+                        sumSquaredAbsoluteCoefficients += Math.pow(Math.abs(dctOutputMatrixRow[dtcHeigth]), 2);
                     }
                 }
 
@@ -542,15 +582,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
         // Square the sum of the absolute coefficients, and divide it by the sum of the squared absolute coefficients.
         // The outcome of this formula can be used as a measure of sparsity.
-        return (float)(Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
+        return (float) (Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
     }
-
-    
-
-    
-
-    
-
 
     /**
      * Main method for debugging.
