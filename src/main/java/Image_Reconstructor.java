@@ -26,11 +26,7 @@ import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
 import java.awt.AWTEvent;
-import java.awt.Label;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
 

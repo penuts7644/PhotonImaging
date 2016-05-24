@@ -77,7 +77,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     private final int flags = PlugInFilter.DOES_STACKS
             | PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16
-            | PlugInFilter.PARALLELIZE_STACKS
+            //| PlugInFilter.PARALLELIZE_STACKS
             | PlugInFilter.STACK_REQUIRED
             | PlugInFilter.FINAL_PROCESSING;
 
@@ -236,6 +236,9 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
 
         // Update the progressbar.
         this.pb.show(this.cPass, this.nPasses);
+        if (ip.getSliceNumber() % 100 == 0){
+            this.createOutputImage();
+        }
 
     }
 
@@ -430,7 +433,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      *
      * @param args unused.
      */
-    private static void main(final String[] args) {
+    public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
         Class<?> clazz = Photon_Image_Processor.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
