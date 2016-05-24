@@ -77,7 +77,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     private final int flags = PlugInFilter.DOES_STACKS
             | PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16
-            //| PlugInFilter.PARALLELIZE_STACKS
+            | PlugInFilter.PARALLELIZE_STACKS
             | PlugInFilter.STACK_REQUIRED
             | PlugInFilter.FINAL_PROCESSING;
 
@@ -236,10 +236,6 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
 
         // Update the progressbar.
         this.pb.show(this.cPass, this.nPasses);
-        if (ip.getSliceNumber() % 100 == 0){
-            this.createOutputImage();
-        }
-
     }
 
     /**
