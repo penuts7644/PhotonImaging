@@ -295,12 +295,105 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
         // Modify the modifiedMatrixPart
         modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
+        
+        // If the random change is better, the outcome of the merit function is higher, and the change should be made to the new image
+        if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
+            newImage.set(randomX, randomY, randomColorValue);
+            return true; // true, because the image was modified
+        } else{
+            return false; // false, because the image was not modified
+        }
+        
+    }
+    
+    
+    private boolean tryToModifyImageGradientVersion(ImageProcessor originalImage, ImageProcessor newImage){
+        int randomX;
+        int randomY;
+        int randomColorValue;
+        float randomColorMultiplier;
+        int[][] originalMatrixPart;
+        int[][] modifiedMatrixPart;
+        
+        // Choose a random pixel and a random modification for that pixel (pixelvalue + 1 * random value between 1 and 2)
+        randomX = this.randomGenerator.nextInt(newImage.getWidth());
+        randomY = this.randomGenerator.nextInt(newImage.getHeight());
+        randomColorMultiplier = this.randomGenerator.nextFloat() + (float)1.0;
+        randomColorValue = Math.round((float)(newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
+        
+        // Create the matrices used to calculate the differences between original and modified image.
+        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+        int midpoint = this.dctBlockSize / 2 - 1;
+        
+        // Get the part of the original matrix around the randomly selected x and y,
+        // from both the original and modified matrix.
+        this.getMatrixPartValues(originalImage.getIntArray(), originalMatrixPart, randomX, randomY);
+        this.getMatrixPartValues(newImage.getIntArray(), modifiedMatrixPart, randomX, randomY);
+
+        // Modify the modifiedMatrixPart
+        modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
+        
+        //////// VERANDER DE PUNTEN ER OMHEEN OOK
+        try{
+            modifiedMatrixPart[midpoint-1][midpoint] = Math.round((float)(newImage.get(randomX-1, randomY) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint+1][midpoint] = Math.round((float)(newImage.get(randomX+1, randomY) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint][midpoint-1] = Math.round((float)(newImage.get(randomX, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint][midpoint+1] = Math.round((float)(newImage.get(randomX, randomY+1) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint-1][midpoint-1] = Math.round((float)(newImage.get(randomX-1, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint+1][midpoint+1] = Math.round((float)(newImage.get(randomX+1, randomY+1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint-1][midpoint+1] = Math.round((float)(newImage.get(randomX-1, randomY+1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
+        try{
+            modifiedMatrixPart[midpoint+1][midpoint-1] = Math.round((float)(newImage.get(randomX+1, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1));
+        } catch (IndexOutOfBoundsException ex) {}
 
         // If the random change is better, the outcome of the merit function is higher,
         // and the change should be made to the new image
         if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart)
                 > this.calculateMerit(originalMatrixPart, originalMatrixPart)) {
             newImage.set(randomX, randomY, randomColorValue);
+            
+            try{
+                newImage.set(randomX-1, randomY, Math.round((float)(newImage.get(randomX-1, randomY) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX+1, randomY, Math.round((float)(newImage.get(randomX+1, randomY) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX, randomY-1, Math.round((float)(newImage.get(randomX, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX, randomY+1, Math.round((float)(newImage.get(randomX, randomY+1) + 1) * (float)((randomColorMultiplier - 1) * 0.7 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX-1, randomY-1, Math.round((float)(newImage.get(randomX-1, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX+1, randomY+1, Math.round((float)(newImage.get(randomX+1, randomY+1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX-1, randomY+1, Math.round((float)(newImage.get(randomX-1, randomY+1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            try{
+                newImage.set(randomX+1, randomY-1, Math.round((float)(newImage.get(randomX+1, randomY-1) + 1) * (float)((randomColorMultiplier - 1) * 0.3 + 1)));
+            } catch (IndexOutOfBoundsException ex) {}
+            
+            
+            
+            
             return true; // true, because the image was modified
         } else {
             return false; // false, because the image was not modified
