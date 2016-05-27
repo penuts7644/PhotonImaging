@@ -49,9 +49,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
     /** The size for the DCT matrix to use. */
-    private final int dctBlockSize = 12;
+    private final int dctBlockSize = 8;
     /** The estimated dark count rate of the camera. */
-    private float darkCountRate = (float) 0.1;
+    private float darkCountRate = (float) 0.00017;
     /** The regularization factor (lambda). Used to determine the importance of log likelihood versus image sparsity. */
     private float regularizationFactor = (float) 0.5;
     /** The threshold ratio of passed changes : rejected changes in the new image. */
