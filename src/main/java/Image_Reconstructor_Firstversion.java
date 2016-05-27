@@ -174,7 +174,7 @@ public class Image_Reconstructor_Firstversion implements PlugInFilter {
         
         
         for (int i = 0; i < this.originalMatrix.length; i++){
-            for (int j = 0; i < this.originalMatrix[0].length; i++){
+            for (int j = 0; j < this.originalMatrix[0].length; j++){
                 try{
                     logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate) 
                         - (modifiedMatrix[i][j] + this.darkCountRate)

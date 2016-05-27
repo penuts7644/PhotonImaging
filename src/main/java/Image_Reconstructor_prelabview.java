@@ -189,16 +189,16 @@ public final class Image_Reconstructor_prelabview implements ExtendedPlugInFilte
         rejectedChanges = 1;
 
 //        // DIT IS ALLEMAAL VOOR DEBUGGEN MOET STRAKS ALLEMAAL WEGGGGGGGGGG
-//        long startTime = System.nanoTime();
-//        boolean img90 = true;
-//        boolean img80 = true;
-//        boolean img70 = true;
-//        boolean img60 = true;
-//        boolean img50 = true;
-//        boolean img40 = true;
-//        boolean img30 = true;
-//        boolean img20 = true;
-//        boolean img10 = true;
+        long startTime = System.nanoTime();
+        boolean img90 = true;
+        boolean img80 = true;
+        boolean img70 = true;
+        boolean img60 = true;
+        boolean img50 = true;
+        boolean img40 = true;
+        boolean img30 = true;
+        boolean img20 = true;
+        boolean img10 = true;
 
         // Keep making changes:
         //   - for at least 1000 iterations (because the ratio is so unstable in the beginning)
@@ -217,34 +217,34 @@ public final class Image_Reconstructor_prelabview implements ExtendedPlugInFilte
 
 //            // MISSCHIEN KAN HET STUK BINNEN DE WHILE IN EEN LOSSE FUNCTIE die dan alleen true/false returnt op basis van changepassed of changerejected
 //            // ALLEEN VOOR TESTEN, DAARNA VERWIJDEREN
-//            if (passedChanges/rejectedChanges < 0.9 && img90 && (passedChanges + rejectedChanges > 1000)){
-//                img90 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.8 && img80 && (passedChanges + rejectedChanges > 1000)){
-//                img80 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.7 && img70 && (passedChanges + rejectedChanges > 1000)){
-//                img70 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.6 && img60 && (passedChanges + rejectedChanges > 1000)){
-//                img60 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.5 && img50 && (passedChanges + rejectedChanges > 1000)){
-//                img50 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.4 && img40 && (passedChanges + rejectedChanges > 1000)){
-//                img40 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.3 && img30 && (passedChanges + rejectedChanges > 1000)){
-//                img30 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.2 && img20 && (passedChanges + rejectedChanges > 1000)){
-//                img20 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            } else if (passedChanges/rejectedChanges < 0.1 && img10 && (passedChanges + rejectedChanges > 1000)){
-//                img10 = false;
-//                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
-//            }
+            if (passedChanges/rejectedChanges < 0.9 && img90 && (passedChanges + rejectedChanges > 1000)){
+                img90 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.9|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.8 && img80 && (passedChanges + rejectedChanges > 1000)){
+                img80 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.8|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.7 && img70 && (passedChanges + rejectedChanges > 1000)){
+                img70 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.7|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.6 && img60 && (passedChanges + rejectedChanges > 1000)){
+                img60 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.6|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.5 && img50 && (passedChanges + rejectedChanges > 1000)){
+                img50 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.5|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.4 && img40 && (passedChanges + rejectedChanges > 1000)){
+                img40 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.4|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.3 && img30 && (passedChanges + rejectedChanges > 1000)){
+                img30 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.3|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.2 && img20 && (passedChanges + rejectedChanges > 1000)){
+                img20 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.2|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            } else if (passedChanges/rejectedChanges < 0.1 && img10 && (passedChanges + rejectedChanges > 1000)){
+                img10 = false;
+                createOutputImage(newImage.duplicate(), "ratio:0.1|time:" + (float)(System.nanoTime() - startTime) + "|dct:" + this.dctBlockSize +"|darkcount:" + this.darkCountRate + "|lambda:" + this.regularizationFactor + "|colormethod:*2");
+            }
 
         }
         
@@ -513,7 +513,7 @@ public final class Image_Reconstructor_prelabview implements ExtendedPlugInFilte
 
         // The calculation for the log likelihood
         for (int i = 0; i < originalMatrix.length; i++) {
-            for (int j = 0; i < originalMatrix[0].length; i++) {
+            for (int j = 0; j < originalMatrix[0].length; j++) {
                 logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate)
                         - (modifiedMatrix[i][j] + this.darkCountRate)
                         - CombinatoricsUtils.factorialLog(originalMatrix[i][j]));
