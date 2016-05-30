@@ -57,6 +57,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private double regularizationFactor = 0.5;
     
     private GaussianBlur blurrer = new GaussianBlur();
+    private double multiplyValue = 2.0;
     private double blurRadius = 1.5;
     private double scalingValue = 100.0;
     private double scalingValueCutoff = 0.01; //// testen verschillende waarden!
