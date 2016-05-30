@@ -388,7 +388,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
         }
 
         // Use 0 as min and largest value in the matrix as max for grayscale mapping.
-        sp.setMinAndMax(0, (diffMatrixCount.size() - 2)); // Pixel mapping uses blocks.
+        if (diffMatrixCount.size() == 2) {
+            sp.setMinAndMax(0, 1);
+        } else {
+            sp.setMinAndMax(0, (diffMatrixCount.size() - 2));
+        }
 
         // Create new output image with title.
         ImagePlus outputImage = new ImagePlus("Photon Count Image", sp);
