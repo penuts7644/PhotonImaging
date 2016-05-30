@@ -58,7 +58,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     
     private GaussianBlur blurrer = new GaussianBlur();
     private double blurRadius = 1.5;
-    private double scalingValue = 4;
+    private double scalingValue = 100.0;
     private double scalingValueCutoff = 0.01; //// testen verschillende waarden!
     
     /** The threshold ratio of passed changes : rejected changes in the new image. */
@@ -199,7 +199,20 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         int[][] originalMatrixPart;
         int[][] modifiedMatrixPart;
         int midpoint;
-
+        
+        
+//        System.out.println("hoi");
+//        
+//        int[][] testmatrix = new int[3][3];
+//        testmatrix[0][0] = 1;
+//        testmatrix[1][0] = 2;
+//        testmatrix[2][0] = 3;
+//        testmatrix[0][1] = 4;
+//        
+//        this.calculateLogLikelihood(testmatrix, testmatrix.clone());
+//        
+//        return;
+        
         //this.scalingValue = originalIp.getMax() / 10;
         
         // Duplicate the original image to create a new output image.
@@ -217,13 +230,14 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         midpoint = this.dctBlockSize / 2 - 1;
         
         
+        
         int i = 0;
         while (continueLoop){
             // random change
             randomX = this.randomGenerator.nextInt(outIp.getWidth());
             randomY = this.randomGenerator.nextInt(outIp.getHeight());
            
-            randomColorValue = (int) Math.abs((this.randomGenerator.nextDouble() - 0.5) * this.scalingValue + outIp.get(randomX, randomY));
+            randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.5) * this.scalingValue + outIp.get(randomX, randomY)));
             if (randomColorValue == outIp.get(randomX, randomY)){
                 continue;
             }
@@ -252,12 +266,16 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             newMeritValue = newLogLikelihood - this.regularizationFactor * newMatrixSparsity;
             //System.out.println(newLogLikelihood + " | " + newMatrixSparsity + " | " + newMeritValue);
             
+            
+            
             // System.out.println(initialMeritValue - newMeritValue);
             if (newMeritValue > initialMeritValue){
-                System.out.println("*");
+                System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-initialMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
                 outIp.set(randomX, randomY, randomColorValue);
                 initialMeritValue = newMeritValue;
                 outImp.updateAndRepaintWindow();
+            } else {
+                System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-initialMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
             }
             
             i ++;
@@ -454,7 +472,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // The calculation for the log likelihood
         for (int i = 0; i < originalMatrix.length; i++) {
             for (int j = 0; j < originalMatrix[0].length; j++) {
-                logLikelihood += (Math.log(modifiedMatrix[i][j] + this.darkCountRate)
+                logLikelihood += ((originalMatrix[i][j] * Math.log(modifiedMatrix[i][j] + this.darkCountRate))
                         - (modifiedMatrix[i][j] + this.darkCountRate)
                         - CombinatoricsUtils.factorialLog(originalMatrix[i][j]));
             }
