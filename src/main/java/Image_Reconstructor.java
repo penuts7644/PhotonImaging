@@ -182,7 +182,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * @param nPasses integer with the amount of runs to be called.
      */
     @Override
-    public void setNPasses(final int nPasses) {
+    public void setNPasses(final int nPasses) { // WERKT NOG NIET! NAAR KIJKEN OF VERWIJDEREN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         this.nPasses = (int)(Math.log(this.scalingValueCutoff/this.scalingValue)/Math.log(0.9));
     }
 
@@ -198,7 +198,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         boolean continueLoop = true;
         double initialLogLikelihood;
         double initialMatrixSparsity;
-        double initialMeritValue;
+        double bestMeritValue;
         double newLogLikelihood;
         double newMatrixSparsity;
         double newMeritValue;
@@ -219,16 +219,14 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             return;
         }
         
-
         
         // Duplicate the original image to create a new output image.
         ImageProcessor outIp = originalIp.duplicate();
         this.blurrer.blurGaussian(outIp, this.blurRadius);
         ImagePlus outImp = this.createOutputImage(outIp);
         
-        initialLogLikelihood = this.calculateLogLikelihood(originalIp.getIntArray(), outIp.getIntArray());
         initialMatrixSparsity = this.calculateMatrixSparsity(outIp.getIntArray());
-        initialMeritValue = initialLogLikelihood - this.regularizationFactor * initialMatrixSparsity;
+        bestMeritValue = this.calculateLogLikelihood(originalIp.getIntArray(), outIp.getIntArray()) - this.regularizationFactor * initialMatrixSparsity;
         
                 
         originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
@@ -255,29 +253,51 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             newLogLikelihood = this.calculateLogLikelihood(originalIp.getIntArray(), clonedOutMatrix);
   
             
-            newMatrixSparsity = this.calculateMatrixSparsity(clonedOutMatrix);
+            //////////////////////////////////////////////////////////////////////////////////////////////
+            // Create the matrices used to calculate the differences between original and modified image.
+            originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+            modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+            midpoint = this.dctBlockSize / 2 - 1;
 
+            // Get the part of the original matrix around the randomly selected x and y,
+            // from both the original and modified matrix.  
+            this.getMatrixPartValues(clonedOutMatrix, originalMatrixPart, randomX, randomY);
+            this.getMatrixPartValues(clonedOutMatrix, modifiedMatrixPart, randomX, randomY);
+
+            // Modify the modifiedMatrixPart
+            modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
+            ////////////////////////////////////////////////////////////////////////////////////////
+            
+            newMatrixSparsity = this.calculateMatrixSparsity(clonedOutMatrix);
+            
+            System.out.println("echt = " + newMatrixSparsity + " berekend = " + (newMatrixSparsity - this.calculateMatrixSparsity(originalMatrixPart) + this.calculateMatrixSparsity(modifiedMatrixPart)) + " verschil = " + (newMatrixSparsity - (newMatrixSparsity - this.calculateMatrixSparsity(originalMatrixPart) + this.calculateMatrixSparsity(modifiedMatrixPart))));
+            System.out.println("m " + this.calculateMatrixSparsity(modifiedMatrixPart));
+            System.out.println("o " + this.calculateMatrixSparsity(modifiedMatrixPart));
+
+            
+            
+            
             newMeritValue = newLogLikelihood - this.regularizationFactor * newMatrixSparsity;
             //System.out.println(newLogLikelihood + " | " + newMatrixSparsity + " | " + newMeritValue);
             
             
             
-            // System.out.println(initialMeritValue - newMeritValue);
+            // System.out.println(bestMeritValue - newMeritValue);
             iterations ++;
-            if (newMeritValue > initialMeritValue){
+            if (newMeritValue > bestMeritValue){
                 modifications++;
-                //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-initialMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
+                //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
                 outIp.set(randomX, randomY, randomColorValue);
-                initialMeritValue = newMeritValue;
+                bestMeritValue = newMeritValue;
+                initialMatrixSparsity = newMatrixSparsity; ///////////////////////////////weghalen is niet waar alleen voor testen
                 outImp.updateAndRepaintWindow();
             } else {
-                //System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-initialMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
+                //System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
             }
             
             // The original algorithm used a more complicated way to check if the scalingvalue should be decreased.
-            if (iterations == 10){
+            if (iterations == 1000){
                 if (modifications / iterations < 0.05){
-                    System.out.println(cPass + "/" + this.nPasses);
                     this.scalingValue *= 0.9;
                     this.cPass++;
                     this.pb.show(this.cPass, this.nPasses);
