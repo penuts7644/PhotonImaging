@@ -1,60 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-		http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>net.imagej</groupId>
         <artifactId>pom-imagej</artifactId>
         <version>14.8.0</version>
         <relativePath />
     </parent>
-
     <groupId>nl.bioinf.lscheffer_wvanhelvoirt</groupId>
-    <artifactId>Photon_Imaging</artifactId>
+    <artifactId>PhotonImaging</artifactId>
     <version>1.0</version>
-
-    <name>PhotonImaging</name>
-    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.</description>
-
-    <developers>
-        <developer>
-            <id>wvh</id>
-            <name>Wout van Helvoirt</name>
-            <email>wout.van.helvoirt@gmail.com</email>
-            <url>http://www.bioinf.nl/~wvanhelvoirt</url>
-            <roles>
-                    <role>architect</role>
-                    <role>developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-        <developer>
-            <id>ls</id>
-            <name>Lonneke Scheffer</name>
-            <email>lonsch96@live.nl</email>
-            <url>http://www.bioinf.nl/~lscheffer</url>
-            <roles>
-                    <role>architect</role>
-                    <role>developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:git://bitbucket.org/penuts7644/photonimaging.git</connection>
-        <developerConnection>scm:git:git@bitbucket.org/penuts7644/photonimaging.git</developerConnection>
-        <tag>HEAD</tag>
-        <url>https://bitbucket.org/penuts7644/photonimaging</url>
-    </scm>
-
-    <properties>
-        <main-class>Photon_Image_Processor</main-class>
-    </properties>
-
+    <packaging>jar</packaging>
     <build>
         <plugins>
             <plugin>
@@ -81,4 +37,38 @@
             <version>3.6.1</version>
         </dependency>
     </dependencies>
+    <properties>
+        <main-class>Photon_Image_Processor</main-class>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.</description>
+    <name>PhotonImaging</name>
+
+    <developers>
+        <developer>
+            <id>wvh</id>
+            <name>Wout van Helvoirt</name>
+            <email>wout.van.helvoirt@gmail.com</email>
+            <url>http://www.bioinf.nl/~wvanhelvoirt</url>
+            <roles>
+                    <role>architect</role>
+                    <role>developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+        <developer>
+            <id>ls</id>
+            <name>Lonneke Scheffer</name>
+            <email>lonsch96@live.nl</email>
+            <url>http://www.bioinf.nl/~lscheffer</url>
+            <roles>
+                    <role>architect</role>
+                    <role>developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
 </project>
