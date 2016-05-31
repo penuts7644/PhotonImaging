@@ -21,6 +21,7 @@ import ij.ImagePlus;
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
+import ij.gui.ProgressBar;
 import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.PlugInFilter;
@@ -48,25 +49,30 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     protected ImagePlus imp;
     /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
+    /** The current pass for the progress bar, default is 0. */
+    private int cPass = 0;
+    /** The ProgressBar. */
+    private ProgressBar pb;
     /** The size for the DCT matrix to use. */
     private final int dctBlockSize = 8;
     /** The estimated dark count rate of the camera. */
     private double darkCountRate = 0.00017;
     /** The regularization factor (lambda). Used to determine the importance of log likelihood versus image sparsity. */
     private double regularizationFactor = 0.5;
-    
-    private GaussianBlur blurrer = new GaussianBlur();
-    private double multiplyValue = 2.0;
+    /** The blur radius used by the Gaussian Blurrer. */
     private double blurRadius = 1.5;
-    private double scalingValue = 100.0;
-    private double scalingValueCutoff = 0.01; //// testen verschillende waarden!
-    
-    /** The threshold ratio of passed changes : rejected changes in the new image. */
-    private float thresholdRatioChanges = (float) 0.3; ////////////////////////////////////moet weg uiteindelijk vervangen door scale methode
+    /** The scaling value used to adjust random values to create new pixel colors. */
+    private double scalingValue = 50.0;
+    /** The cutoff for the scaling value, if the scaling value comes below this, the plugin quits automatically. */
+    private double scalingValueCutoff; //// testen verschillende waarden!
     /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
     /** The Random used to choose a (pseudo)random pixel and modify it (pseudo)randomly. */
     private Random randomGenerator;
+    /** The Gaussian Blurrer used for preprocessing the image. */
+    private GaussianBlur blurrer;
+    
+    private DctCalculator dctCalc;
 
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
@@ -90,8 +96,12 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             return PlugInFilter.DONE;
         }
 
-        this.imp = imp;
-        this.randomGenerator = new Random();
+        if (imp != null) {
+            this.imp = imp;
+            this.randomGenerator = new Random();
+            this.blurrer = new GaussianBlur();
+            this.pb = new ProgressBar(this.imp.getCanvas().getWidth(), this.imp.getCanvas().getHeight());
+        }
 
         return this.flags;
     }
@@ -113,7 +123,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 5);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
-        gd.addNumericField("Modification ratio threshold", this.thresholdRatioChanges, 2);
+        gd.addNumericField("Scaling value", this.scalingValue, 2);
+        gd.addNumericField("Blur radius", this.blurRadius, 2);
+        gd.addPreviewCheckbox(pfr, "Preview blurred image...");
         gd.addDialogListener(this);
 
         // previewing is true while showing the dialog
@@ -143,9 +155,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.darkCountRate = gd.getNextNumber();
         this.regularizationFactor = gd.getNextNumber();
-        //this.thresholdRatioChanges = (float) gd.getNextNumber();
-        
-        
+        this.scalingValue = gd.getNextNumber();
+        this.blurRadius = gd.getNextNumber();
 
         // Check if given arguments are correct.
         if (this.darkCountRate < 0) {
@@ -156,12 +167,16 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         } else if (this.regularizationFactor > 1) {
             this.regularizationFactor = 1;
         }
-        
-//        if (this.thresholdRatioChanges < 0.05) {
-//            this.thresholdRatioChanges = (float) 0.05;
-//        } else if (this.thresholdRatioChanges > 0.9) {
-//            this.thresholdRatioChanges = (float) 0.9;
-//        }
+        if (this.scalingValue < 2){
+            this.scalingValue = 2;
+        }
+        this.scalingValueCutoff = this.scalingValue / 10.0;
+        if (this.blurRadius < 0.1){
+            this.blurRadius = 0.1;
+        }
+
+        // Set N passes to the total number of necessary scaling adjustments until the scaling value cutoff is reached
+
 
         return (!gd.invalidNumber());
     }
@@ -172,10 +187,11 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * @param nPasses integer with the amount of runs to be called.
      */
     @Override
-    public void setNPasses(final int nPasses) {
-        this.nPasses = nPasses;
+    public void setNPasses(final int nPasses) { // WERKT NOG NIET! NAAR KIJKEN OF VERWIJDEREN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        this.nPasses = (int)(Math.log(this.scalingValueCutoff/this.scalingValue)/Math.log(0.9));
     }
-
+    
+    
     /**
      * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
      * This method does most of the work, calls all other methods in the right order.
@@ -187,175 +203,221 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     public void run(final ImageProcessor originalIp) {
         boolean continueLoop = true;
         double initialLogLikelihood;
-        double initialMatrixSparsity;
-        double initialMeritValue;
+        double bestMatrixSparsity;
+        double bestMeritValue;
         double newLogLikelihood;
         double newMatrixSparsity;
         double newMeritValue;
         int randomX;
         int randomY;
         int randomColorValue;
-        int[][] clonedOutMatrix;
-        int[][] originalMatrixPart;
-        int[][] modifiedMatrixPart;
-        int midpoint;
-        
-        
-//        System.out.println("hoi");
-//        
-//        int[][] testmatrix = new int[3][3];
-//        testmatrix[0][0] = 1;
-//        testmatrix[1][0] = 2;
-//        testmatrix[2][0] = 3;
-//        testmatrix[0][1] = 4;
-//        
-//        this.calculateLogLikelihood(testmatrix, testmatrix.clone());
-//        
-//        return;
-        
-        //this.scalingValue = originalIp.getMax() / 10;
-        
+        int modifications;
+        int iterations;
+        int[][] copiedOutMatrix;
+
+
+        // If previewing is enabled, just perform preprocessing on the opened window.
+        if (this.previewing) {
+            this.blurrer.blurGaussian(originalIp, this.blurRadius);
+            return;
+        }
+
         // Duplicate the original image to create a new output image.
         ImageProcessor outIp = originalIp.duplicate();
         this.blurrer.blurGaussian(outIp, this.blurRadius);
         ImagePlus outImp = this.createOutputImage(outIp);
         
-        initialLogLikelihood = this.calculateLogLikelihood(originalIp.getIntArray(), outIp.getIntArray());
-        initialMatrixSparsity = this.calculateMatrixSparsity(outIp.getIntArray());
-        initialMeritValue = initialLogLikelihood - this.regularizationFactor * initialMatrixSparsity;
-        
-                
-        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-        midpoint = this.dctBlockSize / 2 - 1;
-        
-        
-        
-        int i = 0;
-        while (continueLoop){
-            // random change
+        this.dctCalc = new DctCalculator(this.dctBlockSize, outIp.getIntArray()); // DIT MOET UITEINDELIJK NAAR DE SETUP OFZO
+        bestMeritValue = this.calculateMerit(originalIp.getIntArray(), outIp.getIntArray(), this.dctCalc.getTotalSparsity());
+
+        //copiedOutMatrix = new int[originalIp.getWidth()][originalIp.getHeight()];
+
+        this.pb.show(0, this.nPasses);
+
+        iterations = 0;
+        modifications = 0;
+        while (continueLoop) {
+            // Pick a random pixel and a random new color for that pixel
             randomX = this.randomGenerator.nextInt(outIp.getWidth());
             randomY = this.randomGenerator.nextInt(outIp.getHeight());
-           
-            randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.5) * this.scalingValue + outIp.get(randomX, randomY)));
+            // The original algorithm used -0.5 here, but it has been replaced by 0.4 to allow more increases in pixel color instead of decreases.
+            randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + outIp.get(randomX, randomY)));
             if (randomColorValue == outIp.get(randomX, randomY)){
                 continue;
             }
+            
+            copiedOutMatrix = outIp.getIntArray();
+            copiedOutMatrix[randomX][randomY] = randomColorValue;
+            
+            newMatrixSparsity = this.dctCalc.tryModification(randomX, randomY, randomColorValue);
+            newMeritValue = this.calculateMerit(originalIp.getIntArray(), copiedOutMatrix, newMatrixSparsity);
+            
 
-            // calculate new log likelihood
-            clonedOutMatrix = outIp.getIntArray().clone();
-            clonedOutMatrix[randomX][randomY] = randomColorValue;
-            newLogLikelihood = this.calculateLogLikelihood(originalIp.getIntArray(), clonedOutMatrix);
-  
-            
-//            // calculate new dct value
-//            this.getMatrixPartValues(outIp.getIntArray(), originalMatrixPart, randomX, randomY);
-//            modifiedMatrixPart = originalMatrixPart.clone();
-//            modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
-//            
-//            // It takes a long time to calculate the total matrix sparsity, so it is not calculated every time.
-//            // The new extimated total matrix sparsity is the old sparsity, minus the old sparsity around the new mutation, plus the new sparsity around the new mutation
-//            newMatrixSparsity = initialMatrixSparsity - this.calculateMatrixSparsity(originalMatrixPart) + this.calculateMatrixSparsity(modifiedMatrixPart);
-//            System.out.println("new estimated sparsity " + newMatrixSparsity);
-//            initialMatrixSparsity = newMatrixSparsity;
-//            
-//            System.out.println("new calculated sparsity " + this.calculateMatrixSparsity(clonedOutMatrix));
-            
-            newMatrixSparsity = this.calculateMatrixSparsity(clonedOutMatrix);
-
-            newMeritValue = newLogLikelihood - this.regularizationFactor * newMatrixSparsity;
-            //System.out.println(newLogLikelihood + " | " + newMatrixSparsity + " | " + newMeritValue);
-            
-            
-            
-            // System.out.println(initialMeritValue - newMeritValue);
-            if (newMeritValue > initialMeritValue){
-                System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-initialMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
+            iterations ++;
+            if (newMeritValue > bestMeritValue){
+                modifications++;
+                //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
                 outIp.set(randomX, randomY, randomColorValue);
-                initialMeritValue = newMeritValue;
+                bestMeritValue = newMeritValue;
+                this.dctCalc.performModification();
                 outImp.updateAndRepaintWindow();
             } else {
-                System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-initialMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
+                //System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
             }
-            
-            i ++;
-            if (i == 10000){
-                continueLoop = false;
-            }
-            
-        }
-        System.out.println("done");
-        
-        
 
-//        // The ratio between passed modifications and rejected modifications determines when to quit.
-//        // They are set to 1 instead of 0, because ratio 0 / 0 can not be calculated.
-//        double passedChanges = 1;
-//        double rejectedChanges = 1;
-//        boolean wasModified;
-//        // Keep making changes:
-//        //   - for at least 1000 iterations (because the ratio is so unstable in the beginning)
-//        //   - after that, keep making changes while the ratio passedChanges:rejectedChanges is not below the threshold
-//        // (This way, the while loop is quit if most changes do not have an effect on the quality of the output image anymore)
-//        while (passedChanges + rejectedChanges < 1000
-//                || (passedChanges + rejectedChanges >= 1000 && passedChanges/rejectedChanges > this.thresholdRatioChanges)) {
-//            wasModified = this.tryToModifyImage(originalIp, outIp);
-//            if (wasModified) {
-//                passedChanges++;
+            // The original algorithm used a more complicated way to check if the scalingvalue should be decreased.
+            if (iterations == 1000){
+                if (modifications / iterations < 0.05){
+                    this.scalingValue *= 0.9;
+                    this.cPass++;
+                    this.pb.show(this.cPass, this.nPasses);
+                    if (this.scalingValue < this.scalingValueCutoff){
+                        continueLoop = false;
+                    }
+                }
+                iterations = 0;
+                modifications = 0;
+            }
+        }
+
+    }
+    
+    
+    
+//
+//    /**
+//     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
+//     * This method does most of the work, calls all other methods in the right order.
+//     *
+//     * @param originalIp image processor
+//     * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
+//     */
+//    @Override
+//    public void run(final ImageProcessor originalIp) {
+//        boolean continueLoop = true;
+//        double initialLogLikelihood;
+//        double bestMatrixSparsity;
+//        double bestMeritValue;
+//        double newLogLikelihood;
+//        double newMatrixSparsity;
+//        double newMeritValue;
+//        int randomX;
+//        int randomY;
+//        int randomColorValue;
+//        int modifications;
+//        int iterations;
+//        int[][] copiedOutMatrix;
+//        int[][] originalMatrixPart;
+//        int[][] modifiedMatrixPart;
+//        int midpoint;
+//
+//
+//        // If previewing is enabled, just perform preprocessing on the opened window.
+//        if (this.previewing) {
+//            this.blurrer.blurGaussian(originalIp, this.blurRadius);
+//            return;
+//        }
+//
+//
+//        // Duplicate the original image to create a new output image.
+//        ImageProcessor outIp = originalIp.duplicate();
+//        this.blurrer.blurGaussian(outIp, this.blurRadius);
+//        ImagePlus outImp = this.createOutputImage(outIp);
+//
+//        bestMatrixSparsity = this.calculateMatrixSparsity(outIp.getIntArray());
+//        bestMeritValue = this.calculateLogLikelihood(originalIp.getIntArray(), outIp.getIntArray()) - this.regularizationFactor * bestMatrixSparsity;
+//
+//        copiedOutMatrix = new int[originalIp.getWidth()][originalIp.getHeight()];
+//        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+//        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+//        midpoint = (this.dctBlockSize) / 2 - 1;
+//
+//        this.pb.show(0, this.nPasses);
+//
+//        iterations = 0;
+//        modifications = 0;
+//        while (continueLoop) {
+//            // Pick a random pixel and a random new color for that pixel
+//            randomX = this.randomGenerator.nextInt(outIp.getWidth());
+//            randomY = this.randomGenerator.nextInt(outIp.getHeight());
+//            // The original algorithm used -0.5 here, but it has been replaced by 0.4 to allow more increases in pixel color instead of decreases.
+//            randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + outIp.get(randomX, randomY)));
+//            if (randomColorValue == outIp.get(randomX, randomY)){
+//                continue;
+//            }
+//
+//            // Copy the output array and the part around the chosen pixel with the original color
+//            this.copyMatrixValues(outIp.getIntArray(), copiedOutMatrix);
+//            this.getMatrixPartValues(copiedOutMatrix, originalMatrixPart, randomX, randomY);
+//
+//            // Modify the output matrix and copy the part again (it now has a modified pixel)
+//            copiedOutMatrix[randomX][randomY] = randomColorValue;
+//            this.getMatrixPartValues(copiedOutMatrix, modifiedMatrixPart, randomX, randomY);
+//            
+//            // Calculate the log likelihood for this modified matrix
+//            newLogLikelihood = this.calculateLogLikelihood(originalIp.getIntArray(), copiedOutMatrix);
+//            
+//            
+//            newMatrixSparsity = this.calculateMatrixSparsity(copiedOutMatrix);
+//          
+////            
+////            double calcMatrixSparsity = this.calculateMatrixSparsity(copiedOutMatrix);
+////            double modifiedPartSparsity = this.calculateMatrixSparsity(modifiedMatrixPart);
+////            double originalPartSparsity = this.calculateMatrixSparsity(originalMatrixPart);
+////            double estimMatrixSparsity = bestMatrixSparsity - originalPartSparsity + modifiedPartSparsity;
+////            
+////            //System.out.println("calc_best,estim_best,diff,pixelx,pixely,pixelxmod,pixelymod,kleurvoor,kleurna,kleurverandering");
+////            
+////            if (true){
+//////                System.out.println("calc-best:     " + (calcMatrixSparsity - bestMatrixSparsity));
+//////                System.out.println("estim-best:    " + (estimMatrixSparsity - bestMatrixSparsity));
+//////                System.out.println("diff:          " + ((calcMatrixSparsity - bestMatrixSparsity) - (estimMatrixSparsity - bestMatrixSparsity)));
+//////                System.out.println("pixel:         " + randomX + ";" + randomY);
+//////                System.out.println("pixel%8:       " + (randomX % 8) + ";" + (randomY % 8));
+//////                System.out.println("kleur voor:    " + originalMatrixPart[midpoint][midpoint]);
+//////                System.out.println("kleur na:      " + modifiedMatrixPart[midpoint][midpoint]);
+//////                System.out.println("% verandering: " + ((float)modifiedMatrixPart[midpoint][midpoint] / (float)originalMatrixPart[midpoint][midpoint]));
+//////                System.out.println("************************");
+//////                
+////                //System.out.println("calc_best,estim_best,diff,pixelx,pixely,pixelxmod,pixelymod,kleurvoor,kleurna,kleurverandering");
+////                System.out.println((calcMatrixSparsity - bestMatrixSparsity) + "," + (estimMatrixSparsity - bestMatrixSparsity) + "," + ((calcMatrixSparsity - bestMatrixSparsity) - (estimMatrixSparsity - bestMatrixSparsity)) + "," + randomX + "," + randomY + "," + (randomX % 8) + "," + (randomY % 8) + "," + originalMatrixPart[midpoint][midpoint] + "," + modifiedMatrixPart[midpoint][midpoint] + "," + ((float)modifiedMatrixPart[midpoint][midpoint] / (float)originalMatrixPart[midpoint][midpoint]));
+////            }
+////            
+////            
+////            //System.out.println(modifiedMatrixPart[midpoint][midpoint] + " = " + originalMatrixPart[midpoint][midpoint]);
+////            //System.out.println(newMatrixSparsity + "," + (newMatrixSparsity - originalPartSparsity + modifiedPartSparsity) + " = " + modifiedPartSparsity + " - " + originalPartSparsity);
+//
+//            newMeritValue = newLogLikelihood - this.regularizationFactor * newMatrixSparsity;
+//            
+//            iterations ++;
+//            if (newMeritValue > bestMeritValue){
+//                modifications++;
+//                //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
+//                outIp.set(randomX, randomY, randomColorValue);
+//                bestMeritValue = newMeritValue;
+//                bestMatrixSparsity = newMatrixSparsity; ///////////////////////////////weghalen is niet waar alleen voor testen
 //                outImp.updateAndRepaintWindow();
 //            } else {
-//                rejectedChanges++;
+//                //System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
+//            }
+//
+//            // The original algorithm used a more complicated way to check if the scalingvalue should be decreased.
+//            if (iterations == 1000){
+//                if (modifications / iterations < 0.05){
+//                    this.scalingValue *= 0.9;
+//                    this.cPass++;
+//                    this.pb.show(this.cPass, this.nPasses);
+//                    if (this.scalingValue < this.scalingValueCutoff){
+//                        continueLoop = false;
+//                    }
+//                }
+//                iterations = 0;
+//                modifications = 0;
 //            }
 //        }
-    }
+//
+//    }
 
-    /**
-     * Makes a modification to the input image and tests whether it was an improvement.
-     * If the modification improves the original image, the new image will contain this modification.
-     *
-     * @param originalImage the original input image
-     * @param newImage the created modified image
-     * @return boolean whether the image was modified
-     */
-    private boolean tryToModifyImage(final ImageProcessor originalImage, final ImageProcessor newImage) {
-        int randomX;
-        int randomY;
-        int randomColorValue;
-        double randomColorMultiplier;
-        int[][] originalMatrixPart;
-        int[][] modifiedMatrixPart;
-
-        // Choose a random pixel and a random modification for that pixel
-        // ((pixelvalue + 1) * random value between 1 and 2)
-        randomX = this.randomGenerator.nextInt(newImage.getWidth());
-        randomY = this.randomGenerator.nextInt(newImage.getHeight());
-        randomColorMultiplier = this.randomGenerator.nextDouble() + 1.0;
-        randomColorValue = (int) Math.round((double) (newImage.get(randomX, randomY) + 1) * randomColorMultiplier);
-
-        // Create the matrices used to calculate the differences between original and modified image.
-        originalMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-        modifiedMatrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-        int midpoint = this.dctBlockSize / 2 - 1;
-
-        // Get the part of the original matrix around the randomly selected x and y,
-        // from both the original and modified matrix.
-        this.getMatrixPartValues(originalImage.getIntArray(), originalMatrixPart, randomX, randomY);
-        this.getMatrixPartValues(newImage.getIntArray(), modifiedMatrixPart, randomX, randomY);
-
-        // Modify the modifiedMatrixPart
-        modifiedMatrixPart[midpoint][midpoint] = randomColorValue;
-        
-        // If the random change is better, the outcome of the merit function is higher, and the change should be made to the new image
-        if (this.calculateMerit(originalMatrixPart, modifiedMatrixPart) > this.calculateMerit(originalMatrixPart, originalMatrixPart)){
-            newImage.set(randomX, randomY, randomColorValue);
-            return true; // true, because the image was modified
-        } else{
-            return false; // false, because the image was not modified
-        }
-        
-    }
-    
-    
 
     /**
      * Creates an output image (opened in a new window) of an image processer.
@@ -399,6 +461,27 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             }
             j = 0;
         }
+    }
+    
+    /**
+     * if the source matrix is bigger than the new matrix, only the part that fits inside the new matrix is copied
+     * if the source matrix is smaller, the unknown values are filled in with zero.
+     *
+     * @param sourceMatrix the matrix that the data is copied from
+     * @param newMatrix    the matrix that the data is copied to
+     */
+    private void copyMatrixValues(final int[][] sourceMatrix, int[][] newMatrix) { // WORDT DEZE NOG GEBRUIKT? KIJKEN VOORDAT JE HEM INLEVERT
+        for (int i = 0; i < newMatrix.length; i++) {
+            for (int j = 0; j < newMatrix[0].length; j++) {
+                try {
+                    newMatrix[i][j] = sourceMatrix[i][j];
+                } catch (ArrayIndexOutOfBoundsException aiex) {
+                    newMatrix[i][j] = 0;
+                }
+
+            }
+        }
+
     }
 
 //    /**
@@ -447,9 +530,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * @param modifiedMatrix part of the modified image
      * @return a merit value for this modified image compared to the original
      */
-    private double calculateMerit(final int[][] originalMatrix, final int[][] modifiedMatrix) {
+    private double calculateMerit(final int[][] originalMatrix, final int[][] modifiedMatrix, final double totalMatrixSparsity) {
         return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor
-                * this.calculateMatrixSparsity(modifiedMatrix);
+                * totalMatrixSparsity;
     }
 
     /**
@@ -477,73 +560,12 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
                         - CombinatoricsUtils.factorialLog(originalMatrix[i][j]));
             }
         }
-        
+
 
         return logLikelihood;
 
     }
 
-    /**
-     * Calculates the sparsity of the given matrix, using a Direct Cosine Transform.
-     * The input matrix can be bigger than the DCT size, but if the matrix size is not
-     * a multiple of the DCT size, the transformation will only be performed on the part of
-     * the matrix that 'fits' inside a multiple of the DCT size.
-     *
-     * For instance: an input matrix of size 25x25 will give the same outcome as an input
-     * matrix of size 30x30 if the DCT size is 12, since they will both be rounded to a
-     * 24x24 matrix.
-     *
-     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
-     *
-     * @param matrix the input matrix
-     * @return a measure of the sparsity of the matrix
-     */
-    private double calculateMatrixSparsity(final int[][] matrix) {
-        double sumAbsoluteCoefficients = 0;
-        double sumSquaredAbsoluteCoefficients = 0;
-        double[][] dctInputMatrix;
-        double[][] dctOutputMatrix;
-
-        dctInputMatrix = new double[this.dctBlockSize][this.dctBlockSize];
-        DCT dct = new DCT(this.dctBlockSize);
-
-        // Loop through the whole matrix, by steps of size DCT block size.
-        for (int matrixWidth = 0; matrixWidth < matrix.length; matrixWidth += this.dctBlockSize) {
-            for (int matrixHeigth = 0; matrixHeigth < matrix[0].length; matrixHeigth += this.dctBlockSize) {
-                // Loop through a part of the matrix of size DCT size x DCT size,
-                // and copy the values to a temporary matrix.
-                for (int partWidth = matrixWidth; partWidth < (matrixWidth + this.dctBlockSize); partWidth++) {
-                    for (int partHeigth = matrixHeigth; partHeigth < (matrixHeigth + this.dctBlockSize); partHeigth++) {
-                        // If the matrix size is not a multiple of block size, an ArrayIndexOutOfBoundsException 
-                        // will occur at the edges of the image. Fill these positions in with zero.
-                        try {
-                            dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeigth]
-                                    = (double) matrix[partWidth][partHeigth];
-                        } catch (ArrayIndexOutOfBoundsException ex){
-                            dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeigth] = 0.0;
-                        }
-                    }
-                }
-                // Perform the direct cosine transform on the copied matrix part.
-                dctOutputMatrix = dct.forwardDCT(dctInputMatrix);
-
-                // Get the sum of the absolute coefficients (matrix values),
-                // and the sum of the squared absolute coefficients (matrix values).
-                // These are used in the calculation of P. A. Morris et al.
-                for (double[] dctOutputMatrixRow : dctOutputMatrix) {
-                    for (int dtcHeigth = 0; dtcHeigth < dctOutputMatrix[0].length; dtcHeigth++) {
-                        sumAbsoluteCoefficients += Math.abs(dctOutputMatrixRow[dtcHeigth]);
-                        sumSquaredAbsoluteCoefficients += Math.pow(Math.abs(dctOutputMatrixRow[dtcHeigth]), 2);
-                    }
-                }
-
-            }
-        }
-
-        // Square the sum of the absolute coefficients, and divide it by the sum of the squared absolute coefficients.
-        // The outcome of this formula can be used as a measure of sparsity.
-        return (Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
-    }
 
     /**
      * Main method for debugging.
