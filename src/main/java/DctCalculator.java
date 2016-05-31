@@ -32,6 +32,19 @@ public class DctCalculator {
         this.matrix = matrix;
         this.totalCoefficients = this.calculateCoefficients(matrix);
         this.totalSparsity = this.calculateMatrixSparsity(this.totalCoefficients);
+        this.temporaryCoefficients = new double[]{0, 0};
+    }
+
+    public int getDctBlockSize() {
+        return dctBlockSize;
+    }
+
+    public int[][] getMatrix() {
+        return matrix;
+    }
+
+    public double getTotalSparsity() {
+        return totalSparsity;
     }
     
     
@@ -68,8 +81,8 @@ public class DctCalculator {
         this.temporaryX = xCoordinate;
         this.temporaryY = yCoordinate;
         this.temporaryColor = newColorValue;
-        this.temporaryCoefficients = new double[] {(this.totalCoefficients[0] - originalMatrixPartCoefficients[0] + modifiedMatrixPartCoefficients[0]), 
-            (this.totalCoefficients[1] - originalMatrixPartCoefficients[1] + modifiedMatrixPartCoefficients[1])};
+        this.temporaryCoefficients[0] = this.totalCoefficients[0] - originalMatrixPartCoefficients[0] + modifiedMatrixPartCoefficients[0];
+        this.temporaryCoefficients[1] = this.totalCoefficients[1] - originalMatrixPartCoefficients[1] + modifiedMatrixPartCoefficients[1];
         this.temporarySparsity = this.calculateMatrixSparsity(this.temporaryCoefficients);
         
         return this.temporarySparsity;
@@ -113,6 +126,21 @@ public class DctCalculator {
         return matrixPart;
     }
     
+    /**
+     * Calculates the sparsity of the given matrix, using a Direct Cosine Transform.
+     * The input matrix can be bigger than the DCT size, but if the matrix size is not
+     * a multiple of the DCT size, the transformation will only be performed on the part of
+     * the matrix that 'fits' inside a multiple of the DCT size.
+     *
+     * For instance: an input matrix of size 25x25 will give the same outcome as an input
+     * matrix of size 30x30 if the DCT size is 12, since they will both be rounded to a
+     * 24x24 matrix.
+     *
+     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
+     *
+     * @param matrix the input matrix
+     * @return a measure of the sparsity of the matrix
+     */
     private double[] calculateCoefficients(int[][] inputMatrix){
         double sumAbsoluteCoefficients = 0;
         double sumSquaredAbsoluteCoefficients = 0;
