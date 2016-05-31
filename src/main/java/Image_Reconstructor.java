@@ -256,8 +256,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
             iterations ++;
             if (newMeritValue > bestMeritValue){
-                System.out.println("****************");
-                
                 modifications++;
                 //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
                 outIp.set(randomX, randomY, randomColorValue);
@@ -270,9 +268,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
             // The original algorithm used a more complicated way to check if the scalingvalue should be decreased.
             if (iterations == 1000){
-                System.out.println("omlaag schalen?");
                 if (modifications / iterations < 0.05){
-                    System.out.println("ja");
                     this.scalingValue *= 0.9;
                     this.cPass++;
                     this.pb.show(this.cPass, this.nPasses);
