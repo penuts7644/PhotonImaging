@@ -51,7 +51,6 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
      * This method does most of the work, calls all other methods in the right order.
      *
-     * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -66,6 +65,11 @@ public final class Recursive_TIFF_Opener implements PlugIn {
         try {
             // Show prompt where user can select directory to be searched.
             this.dir = new DirectoryChooser("Select TIFF directory").getDirectory();
+
+            // If PopUp window has been canceled, exit.
+            if (this.dir == null) {
+                return;
+            }
 
             // Search directory.
             searchDirectory(this.dir);
