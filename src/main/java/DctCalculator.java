@@ -56,10 +56,17 @@ public class DctCalculator {
         return this.calculateMatrixSparsity(coefficients[0], coefficients[1]);
     }
     
+    
+      
     public void testEstimatedSparsitySoFar(){
-        System.out.println("Your estimated sparsity so far is: " +  this.totalSparsity);
-        System.out.println("When calculating the new sparsity for the whole image, the outcome is: " + this.calculateMatrixSparsity(this.calculateCoefficients(this.matrix)));
+        double calculatedSparsity;
+        calculatedSparsity = this.calculateMatrixSparsity(this.calculateCoefficients(this.matrix)); 
+        System.out.println("*** Matrix Sparsity ***");
+        System.out.println("Estimated so far: " + this.totalSparsity);
+        System.out.println("Calculated value: " + calculatedSparsity);
+        System.out.println("Difference: " + Math.abs(this.totalSparsity - calculatedSparsity));
     }
+   
     
     public double tryModification(int xCoordinate, int yCoordinate, int newColorValue){
         if (xCoordinate > this.matrix.length || yCoordinate > this.matrix[0].length){
