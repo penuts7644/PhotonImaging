@@ -75,6 +75,13 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     
     private DctCalculator dctCalc;
     private LogLikelihoodCalculator logLikeCalc;
+    private int randomX;
+    private int randomY;
+    private int randomColorValue;
+    private ImageProcessor outIp;
+    private ImagePlus outImp;
+    private int[][] outMatrix;
+    
 
     /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
@@ -206,16 +213,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         boolean continueLoop = true;
         double newMeritValue;
         double bestMeritValue;
-        int randomX;
-        int randomY;
-        int randomColorValue;
-        int acceptedModifications;
-        int totalModifications;
-        int iterations;
-        int[][] outMatrix;
-        ImageProcessor outIp;
-        ImagePlus outImp;
-
+        int acceptedModifications = 0;
+        int totalModifications = 0;
+        int iterations = 0;
 
         // If previewing is enabled, just perform preprocessing on the opened window.
         if (this.previewing) {
@@ -224,69 +224,31 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         }
 
         // Create the output image
-        outIp = originalIp.duplicate();
-        this.blurrer.blurGaussian(outIp, this.blurRadius);
-        outImp = this.createOutputImage(outIp);
+        this.createOutputImage(originalIp);
         
         // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
-        outMatrix = outIp.getIntArray();
-        this.dctCalc = new DctCalculator(this.dctBlockSize, outMatrix);
-        this.logLikeCalc = new LogLikelihoodCalculator(originalIp.getIntArray(), outMatrix, this.darkCountRate);
+        this.outMatrix = this.outIp.getIntArray();
+        this.dctCalc = new DctCalculator(this.dctBlockSize, this.outMatrix);
+        this.logLikeCalc = new LogLikelihoodCalculator(originalIp.getIntArray(), this.outMatrix, this.darkCountRate);
+        
         bestMeritValue = this.calculateMerit();
         
-        
         this.pb.show(0, this.nPasses);
-
-        iterations = 0;
-        acceptedModifications = 0;
-        totalModifications = 0;
+        
         while (continueLoop) {
             iterations++;
             totalModifications++;
             
-            // Pick a random pixel and a random new color for that pixel
-            randomX = this.randomGenerator.nextInt(outIp.getWidth());
-            randomY = this.randomGenerator.nextInt(outIp.getHeight());
-            // The original algorithm used -0.5 here, but it has been replaced by 0.4 to allow more increases in pixel color instead of decreases.
-            randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + outIp.get(randomX, randomY)));
-            if (randomColorValue == outIp.get(randomX, randomY)){
-                continue;
-            }
-
-            newMeritValue = this.calculateMeritWithModification(randomX, randomY, randomColorValue);
+            this.selectNewModification(outIp);
+            newMeritValue = calculateMeritWithModification();
             
             if (newMeritValue > bestMeritValue){
                 acceptedModifications++;
-                //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
-                outIp.set(randomX, randomY, randomColorValue);
                 bestMeritValue = newMeritValue;
-                
-//                this.dctCalc.testEstimatedSparsitySoFar();
-//                this.logLikeCalc.testEstimatedLogLikelihoodSoFar();
-                outMatrix[randomX][randomY] = randomColorValue;
-                
-                this.dctCalc.performModification();
-                this.logLikeCalc.performModification();
-                outImp.updateAndRepaintWindow();
-            } else {
-                //System.out.println("- c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
-            }
-            
-            if (iterations % 10000 == 0){
-                if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.01){
-                    this.scalingValue *= 0.9;
-                    this.cPass++;
-                    this.pb.show(this.cPass, this.nPasses);
-                    System.out.println("scaling down");
-                    if (this.scalingValue < this.scalingValueCutoff){
-                        System.out.println("done");
-                        continueLoop = false;
-                    }
-                }
-                acceptedModifications = 0;
-                totalModifications = 0;
-            }
-           
+                this.acceptModification();
+            } 
+
+            continueLoop = this.testContinueLoop(iterations, acceptedModifications, totalModifications);
         }
 
     }
@@ -297,23 +259,57 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * @param ip the image processor
      * @param name the name of the new window
      */
-    private ImagePlus createOutputImage(final ImageProcessor ip) {
-        ImagePlus outputImage = new ImagePlus("Reconstructed Image", ip);
-        ImageWindow outputWindow = new ImageWindow(outputImage);
+    private void createOutputImage(final ImageProcessor ip) {
+        this.outIp = ip.duplicate();
+        this.blurrer.blurGaussian(outIp, this.blurRadius);
+        this.outImp = new ImagePlus("Reconstructed Image", this.outIp);
+        ImageWindow outputWindow = new ImageWindow(this.outImp);
         outputWindow.setVisible(true);
-        return outputImage;
+    }
+    
+    private boolean testContinueLoop(int iterations, int acceptedModifications, int totalModifications){
+        if (iterations % 10000 == 0){
+            if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.01){
+                this.scalingValue *= 0.9;
+                this.cPass++;
+                this.pb.show(this.cPass, this.nPasses);
+            if (this.scalingValue < this.scalingValueCutoff){
+                    return false;
+                }
+            }
+            acceptedModifications = 0;
+            totalModifications = 0;
+        }
+        return true;
     }
 
+    private void acceptModification(){
+        this.outIp.set(this.randomX, this.randomY, this.randomColorValue);
+        this.outMatrix[this.randomX][this.randomY] = this.randomColorValue;
+        this.dctCalc.performModification();
+        this.logLikeCalc.performModification();
+        this.outImp.updateAndRepaintWindow();
+    }
+    
     private double calculateMerit(){
         return this.logLikeCalc.getTotalLogLikelihood() 
                 - this.regularizationFactor 
                 * this.dctCalc.getTotalSparsity();
     }
     
-    private double calculateMeritWithModification(int randomX, int randomY, int randomColorValue){
-        return this.logLikeCalc.tryModification(randomX, randomY, randomColorValue) 
+    private double calculateMeritWithModification(){
+        return this.logLikeCalc.tryModification(this.randomX, this.randomY, this.randomColorValue) 
                 - this.regularizationFactor 
-                * this.dctCalc.tryModification(randomX, randomY, randomColorValue);
+                * this.dctCalc.tryModification(this.randomX, this.randomY, this.randomColorValue);
+    }
+    
+    
+    private void selectNewModification(ImageProcessor ip){
+        // Pick a random pixel and a random new color for that pixel
+        this.randomX = this.randomGenerator.nextInt(ip.getWidth());
+        this.randomY = this.randomGenerator.nextInt(ip.getHeight());
+        // The original algorithm used -0.5 here, but it has been replaced by 0.4 to allow more increases in pixel color instead of decreases.
+        this.randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + ip.get(randomX, randomY)));
     }
 
 
