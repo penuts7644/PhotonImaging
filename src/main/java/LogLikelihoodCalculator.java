@@ -17,9 +17,9 @@ public final class LogLikelihoodCalculator {
     private double darkCountRate;
     private double totalLogLikelihood;
     private double temporaryLogLikelihood;
-    private int temporaryX;
-    private int temporaryY;
-    private int temporaryColor;
+//    private int temporaryX;
+//    private int temporaryY;
+//    private int temporaryColor;
 
     public LogLikelihoodCalculator(int[][] inputMatrix, int[][] outputMatrix, double darkCountRate) {
         if (inputMatrix.length == outputMatrix.length && inputMatrix[0].length == outputMatrix[0].length){
@@ -38,9 +38,9 @@ public final class LogLikelihoodCalculator {
             throw new ArrayIndexOutOfBoundsException("Your given coordinates (" + xCoordinate + "," + yCoordinate + ") are outside the matrix.");
         }         
         
-        this.temporaryX = xCoordinate;
-        this.temporaryY = yCoordinate;
-        this.temporaryColor = newColorValue;
+//        this.temporaryX = xCoordinate;
+//        this.temporaryY = yCoordinate;
+//        this.temporaryColor = newColorValue;
         this.temporaryLogLikelihood =  this.totalLogLikelihood 
                 - this.calculateLogLikelihood(this.originalMatrix[xCoordinate][yCoordinate], this.modifiedMatrix[xCoordinate][yCoordinate]) 
                 + this.calculateLogLikelihood(this.originalMatrix[xCoordinate][yCoordinate], newColorValue);
@@ -53,7 +53,7 @@ public final class LogLikelihoodCalculator {
     }
     
     public void performModification(){
-        this.modifiedMatrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
+//        this.modifiedMatrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
         this.totalLogLikelihood = this.temporaryLogLikelihood;
     }
     

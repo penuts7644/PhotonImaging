@@ -204,19 +204,17 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     @Override
     public void run(final ImageProcessor originalIp) {
         boolean continueLoop = true;
-        double newLogLikelihood;
-    //    double bestMatrixSparsity;
-        double bestMeritValue;
-      //  double newLogLikelihood;
-        double newMatrixSparsity;
         double newMeritValue;
+        double bestMeritValue;
         int randomX;
         int randomY;
         int randomColorValue;
         int acceptedModifications;
         int totalModifications;
         int iterations;
-        int[][] copiedOutMatrix;
+        int[][] outMatrix;
+        ImageProcessor outIp;
+        ImagePlus outImp;
 
 
         // If previewing is enabled, just perform preprocessing on the opened window.
@@ -225,24 +223,16 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             return;
         }
 
-        // Duplicate the original image to create a new output image.
-        ImageProcessor outIp = originalIp.duplicate();
+        // Create the output image
+        outIp = originalIp.duplicate();
         this.blurrer.blurGaussian(outIp, this.blurRadius);
-        ImagePlus outImp = this.createOutputImage(outIp);
+        outImp = this.createOutputImage(outIp);
         
-        
-        //outIp.set(0, 0, 30);
-        
-        this.dctCalc = new DctCalculator(this.dctBlockSize, outIp.getIntArray()); // DIT MOET UITEINDELIJK NAAR DE SETUP OFZO
-        this.logLikeCalc = new LogLikelihoodCalculator(originalIp.getIntArray(), outIp.getIntArray(), this.darkCountRate);
-        bestMeritValue = logLikeCalc.getTotalLogLikelihood() - this.regularizationFactor * this.dctCalc.getTotalSparsity();
-        
-//bestMeritValue = this.calculateMerit(originalIp.getIntArray(), outIp.getIntArray(), this.dctCalc.getTotalSparsity());
-
-        //copiedOutMatrix = new int[originalIp.getWidth()][originalIp.getHeight()];
-        
-        //System.out.println("expected" + (this.calculateLogLikelihood(originalIp.getIntArray(), outIp.getIntArray()) - this.calculateLogLikelihood(158, 110) + this.calculateLogLikelihood(158,30)));
-        
+        // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
+        outMatrix = outIp.getIntArray();
+        this.dctCalc = new DctCalculator(this.dctBlockSize, outMatrix);
+        this.logLikeCalc = new LogLikelihoodCalculator(originalIp.getIntArray(), outMatrix, this.darkCountRate);
+        bestMeritValue = this.calculateMerit();
         
         
         this.pb.show(0, this.nPasses);
@@ -261,19 +251,20 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + outIp.get(randomX, randomY)));
             if (randomColorValue == outIp.get(randomX, randomY)){
                 continue;
-            }      
-            
+            }
 
-            newMatrixSparsity = this.dctCalc.tryModification(randomX, randomY, randomColorValue);
-            newLogLikelihood = this.logLikeCalc.tryModification(randomX, randomY, randomColorValue);
-            
-            newMeritValue = newLogLikelihood - this.regularizationFactor * newMatrixSparsity;
+            newMeritValue = this.calculateMeritWithModification(randomX, randomY, randomColorValue);
             
             if (newMeritValue > bestMeritValue){
                 acceptedModifications++;
                 //System.out.println("+ c=" + randomColorValue + "(" + (randomColorValue - outIp.get(randomX, randomY)) + ") m=" + (int)newMeritValue + "(" + (int)(newMeritValue-bestMeritValue) + ") s=" + (int)newMatrixSparsity + "(" + (int)(newMatrixSparsity - initialMatrixSparsity) + ") l=" + (int)newLogLikelihood + "(" +  (int)(newLogLikelihood - initialLogLikelihood) + ")");
                 outIp.set(randomX, randomY, randomColorValue);
                 bestMeritValue = newMeritValue;
+                
+//                this.dctCalc.testEstimatedSparsitySoFar();
+//                this.logLikeCalc.testEstimatedLogLikelihoodSoFar();
+                outMatrix[randomX][randomY] = randomColorValue;
+                
                 this.dctCalc.performModification();
                 this.logLikeCalc.performModification();
                 outImp.updateAndRepaintWindow();
@@ -312,6 +303,67 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         outputWindow.setVisible(true);
         return outputImage;
     }
+
+    private double calculateMerit(){
+        return this.logLikeCalc.getTotalLogLikelihood() 
+                - this.regularizationFactor 
+                * this.dctCalc.getTotalSparsity();
+    }
+    
+    private double calculateMeritWithModification(int randomX, int randomY, int randomColorValue){
+        return this.logLikeCalc.tryModification(randomX, randomY, randomColorValue) 
+                - this.regularizationFactor 
+                * this.dctCalc.tryModification(randomX, randomY, randomColorValue);
+    }
+
+
+    /**
+     * This method displays the about information of the plug-in.
+     */
+    public void showAbout() {
+        IJ.showMessage("About Image Reconstructor", "<html>"
+            + "<b>This option can be used to reconstruct the output image created by the 'Process Photon Images' "
+            + "option.</b><br>"
+            + "The original image is changed randomly, and the modifications are evaluated. "
+            + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
+            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
+        );
+    }
+
+
+    /**
+     * Main method for debugging.
+     *
+     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
+     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     *
+     * @param args unused.
+     */
+    public static void main(final String[] args) {
+        // set the plugins.dir property to make the plug-in appear in the Plugins menu
+        Class<?> clazz = Image_Thresholder.class;
+        String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
+        String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
+        System.setProperty("plugins.dir", pluginsDir);
+
+        // start ImageJ
+        new ImageJ();
+
+        // Open the image sequence
+        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
+        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
+        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
+        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
+        ImagePlus image = IJ.getImage();
+
+        // Only if you use new ImagePlus(path) to open the file
+        // image.show();
+        // run the plug-in
+        IJ.runPlugIn(clazz.getName(), "");
+    }
+
+}
+
 
 //    /**
 //     * Copy a part of the source matrix, given a midpoint and new matrix size.
@@ -366,97 +418,51 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 //    }
 
 
-    /**
-     * This method displays the about information of the plug-in.
-     */
-    public void showAbout() {
-        IJ.showMessage("About Image Reconstructor", "<html>"
-            + "<b>This option can be used to reconstruct the output image created by the 'Process Photon Images' "
-            + "option.</b><br>"
-            + "The original image is changed randomly, and the modifications are evaluated. "
-            + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
-            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
-        );
-    }
 
-    /**
-     * This merit function calculates the log likelihood and sparsity for a modified matrix.
-     * The goal is to maximize the outcome of this merit function. The regularization factor
-     * determines the importance of the log likelihood and sparsity compared to one another.
-     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
-     *
-     * @param originalMatrix part of the original image
-     * @param modifiedMatrix part of the modified image
-     * @return a merit value for this modified image compared to the original
-     */
-    private double calculateMerit(final int[][] originalMatrix, final int[][] modifiedMatrix, final double totalMatrixSparsity) {
-        return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor
-                * totalMatrixSparsity;
-    }
+//    /**
+//     * This merit function calculates the log likelihood and sparsity for a modified matrix.
+//     * The goal is to maximize the outcome of this merit function. The regularization factor
+//     * determines the importance of the log likelihood and sparsity compared to one another.
+//     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
+//     *
+//     * @param originalMatrix part of the original image
+//     * @param modifiedMatrix part of the modified image
+//     * @return a merit value for this modified image compared to the original
+//     */
+//    private double calculateMerit(final int[][] originalMatrix, final int[][] modifiedMatrix, final double totalMatrixSparsity) {
+//        return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor
+//                * totalMatrixSparsity;
+//    }
 
-    /**
-     * Calculates the log likelihood for the modified matrix given the original matrix.
-     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
-     *
-     * @param originalMatrix part of the original image
-     * @param modifiedMatrix part of the modified image
-     * @return the log likelihood
-     */
-    private double calculateLogLikelihood(final int[][] originalMatrix, final int[][] modifiedMatrix) {
-        double logLikelihood = 0;
-
-        // The two matrices must be the same size
-        if (originalMatrix.length != modifiedMatrix.length
-                || originalMatrix[0].length != modifiedMatrix[0].length) {
-            throw new IndexOutOfBoundsException("Your original matrix and modified matrix do not have the same size");
-        }
-
-        // The calculation for the log likelihood
-        for (int i = 0; i < originalMatrix.length; i++) {
-            for (int j = 0; j < originalMatrix[0].length; j++) {
-                logLikelihood += this.calculateLogLikelihood(originalMatrix[i][j], modifiedMatrix[i][j]);
-            }
-        }
-
-        return logLikelihood;
-    }
-    
-    private double calculateLogLikelihood(final int originalPixelValue, final int modifiedPixelValue){
-        return ((originalPixelValue * Math.log(modifiedPixelValue + this.darkCountRate))
-                        - (modifiedPixelValue + this.darkCountRate)
-                        - CombinatoricsUtils.factorialLog(originalPixelValue));
-    }
-
-
-    /**
-     * Main method for debugging.
-     *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
-     *
-     * @param args unused.
-     */
-    public static void main(final String[] args) {
-        // set the plugins.dir property to make the plug-in appear in the Plugins menu
-        Class<?> clazz = Image_Thresholder.class;
-        String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
-        String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
-        System.setProperty("plugins.dir", pluginsDir);
-
-        // start ImageJ
-        new ImageJ();
-
-        // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
-        ImagePlus image = IJ.getImage();
-
-        // Only if you use new ImagePlus(path) to open the file
-        // image.show();
-        // run the plug-in
-        IJ.runPlugIn(clazz.getName(), "");
-    }
-
-}
+//    /**
+//     * Calculates the log likelihood for the modified matrix given the original matrix.
+//     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
+//     *
+//     * @param originalMatrix part of the original image
+//     * @param modifiedMatrix part of the modified image
+//     * @return the log likelihood
+//     */
+//    private double calculateLogLikelihood(final int[][] originalMatrix, final int[][] modifiedMatrix) {
+//        double logLikelihood = 0;
+//
+//        // The two matrices must be the same size
+//        if (originalMatrix.length != modifiedMatrix.length
+//                || originalMatrix[0].length != modifiedMatrix[0].length) {
+//            throw new IndexOutOfBoundsException("Your original matrix and modified matrix do not have the same size");
+//        }
+//
+//        // The calculation for the log likelihood
+//        for (int i = 0; i < originalMatrix.length; i++) {
+//            for (int j = 0; j < originalMatrix[0].length; j++) {
+//                logLikelihood += this.calculateLogLikelihood(originalMatrix[i][j], modifiedMatrix[i][j]);
+//            }
+//        }
+//
+//        return logLikelihood;
+//    }
+//    
+//    private double calculateLogLikelihood(final int originalPixelValue, final int modifiedPixelValue){
+//        return ((originalPixelValue * Math.log(modifiedPixelValue + this.darkCountRate))
+//                        - (modifiedPixelValue + this.darkCountRate)
+//                        - CombinatoricsUtils.factorialLog(originalPixelValue));
+//    }

@@ -15,9 +15,9 @@ public class DctCalculator {
     private double totalSparsity;
     private double[] temporaryCoefficients;
     private double temporarySparsity;
-    private int temporaryX;
-    private int temporaryY;
-    private int temporaryColor;
+//    private int temporaryX;
+//    private int temporaryY;
+//    private int temporaryColor;
 
     public DctCalculator(int dctBlockSize, int[][] matrix) {
         // check if power of 2
@@ -85,9 +85,9 @@ public class DctCalculator {
         originalMatrixPartCoefficients = this.calculateCoefficients(originalMatrixPart);
         modifiedMatrixPartCoefficients = this.calculateCoefficients(modifiedMatrixPart);
         
-        this.temporaryX = xCoordinate;
-        this.temporaryY = yCoordinate;
-        this.temporaryColor = newColorValue;
+//        this.temporaryX = xCoordinate;
+//        this.temporaryY = yCoordinate;
+//        this.temporaryColor = newColorValue;
         this.temporaryCoefficients[0] = this.totalCoefficients[0] - originalMatrixPartCoefficients[0] + modifiedMatrixPartCoefficients[0];
         this.temporaryCoefficients[1] = this.totalCoefficients[1] - originalMatrixPartCoefficients[1] + modifiedMatrixPartCoefficients[1];
         this.temporarySparsity = this.calculateMatrixSparsity(this.temporaryCoefficients);
@@ -96,7 +96,7 @@ public class DctCalculator {
     }
     
     public void performModification(){
-        this.matrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
+//        this.matrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
         this.totalCoefficients[0] = this.temporaryCoefficients[0];
         this.totalCoefficients[1] = this.temporaryCoefficients[1];
         this.totalSparsity = this.temporarySparsity;
