@@ -223,7 +223,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             return;
         }
 
-        // Create the output image
         this.createOutputImage(originalIp);
         
         // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
@@ -239,7 +238,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             iterations++;
             totalModifications++;
             
-            this.selectNewModification(outIp);
+            this.selectNewModification();
             newMeritValue = calculateMeritWithModification();
             
             if (newMeritValue > bestMeritValue){
@@ -304,12 +303,12 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     }
     
     
-    private void selectNewModification(ImageProcessor ip){
+    private void selectNewModification(){
         // Pick a random pixel and a random new color for that pixel
-        this.randomX = this.randomGenerator.nextInt(ip.getWidth());
-        this.randomY = this.randomGenerator.nextInt(ip.getHeight());
+        this.randomX = this.randomGenerator.nextInt(this.outIp.getWidth());
+        this.randomY = this.randomGenerator.nextInt(this.outIp.getHeight());
         // The original algorithm used -0.5 here, but it has been replaced by 0.4 to allow more increases in pixel color instead of decreases.
-        this.randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + ip.get(randomX, randomY)));
+        this.randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + this.outIp.get(randomX, randomY)));
     }
 
 
