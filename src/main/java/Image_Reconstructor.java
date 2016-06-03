@@ -48,12 +48,6 @@ import org.apache.commons.math3.util.CombinatoricsUtils;
 public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener {
     /** The ImagePlus given by the user. */
     protected ImagePlus imp;
-    /** The number of passes for the progress bar, default is 0. */
-    private int nPasses = 0;
-    /** The current pass for the progress bar, default is 0. */
-    private int cPass = 0;
-    /** The ProgressBar. */
-    private ProgressBar pb;
     /** The size for the DCT matrix to use. */
     private final int dctBlockSize = 8;
     /** The estimated dark count rate of the camera. */
@@ -109,7 +103,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             this.imp = imp;
             this.randomGenerator = new Random();
             this.blurrer = new GaussianBlur();
-            this.pb = new ProgressBar(this.imp.getCanvas().getWidth(), this.imp.getCanvas().getHeight());
         }
 
         return this.flags;
@@ -184,22 +177,11 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             this.blurRadius = 0.1;
         }
 
-        // Set N passes to the total number of necessary scaling adjustments until the scaling value cutoff is reached
-
+        
 
         return (!gd.invalidNumber());
     }
 
-    /**
-     * This method tells the the runner the amount of runs get executed.
-     *
-     * @param nPasses integer with the amount of runs to be called.
-     */
-    @Override
-    public void setNPasses(final int nPasses) { // WERKT NOG NIET! NAAR KIJKEN OF VERWIJDEREN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        this.nPasses = (int)(Math.log(this.scalingValueCutoff/this.scalingValue)/Math.log(0.9));
-    }
-    
     
     /**
      * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
@@ -216,6 +198,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         int acceptedModifications = 0;
         int totalModifications = 0;
         int iterations = 0;
+        
+        // Set N passes to the total number of necessary scaling adjustments until the scaling value cutoff is reached
+        //this.setNPasses((int)(Math.log(this.scalingValueCutoff/this.scalingValue)/Math.log(0.9)));
 
         // If previewing is enabled, just perform preprocessing on the opened window.
         if (this.previewing) {
@@ -231,8 +216,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         this.logLikeCalc = new LogLikelihoodCalculator(originalIp.getIntArray(), this.outMatrix, this.darkCountRate);
         
         bestMeritValue = this.calculateMerit();
-        
-        this.pb.show(0, this.nPasses);
         
         while (continueLoop) {
             iterations++;
@@ -270,8 +253,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         if (iterations % 10000 == 0){
             if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.01){
                 this.scalingValue *= 0.9;
-                this.cPass++;
-                this.pb.show(this.cPass, this.nPasses);
                 if (this.scalingValue < this.scalingValueCutoff){
                         return false;
                     }
@@ -356,6 +337,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }
+
+    @Override
+    public void setNPasses(int nPasses) {}
 
 }
 
