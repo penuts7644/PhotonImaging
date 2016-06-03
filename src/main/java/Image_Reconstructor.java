@@ -272,9 +272,9 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
                 this.scalingValue *= 0.9;
                 this.cPass++;
                 this.pb.show(this.cPass, this.nPasses);
-            if (this.scalingValue < this.scalingValueCutoff){
-                    return false;
-                }
+                if (this.scalingValue < this.scalingValueCutoff){
+                        return false;
+                    }
             }
             acceptedModifications = 0;
             totalModifications = 0;
