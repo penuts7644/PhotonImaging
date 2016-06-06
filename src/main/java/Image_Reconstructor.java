@@ -27,6 +27,7 @@ import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 import java.awt.AWTEvent;
 import java.util.Random;
 import org.apache.commons.math3.util.CombinatoricsUtils;
@@ -57,9 +58,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     /** The blur radius used by the Gaussian Blurrer. */
     private double blurRadius = 1.5;
     /** The scaling value used to adjust random values to create new pixel colors. */
-    private double scalingValue = 50.0;
-    /** The cutoff for the scaling value, if the scaling value comes below this, the plugin quits automatically. */
-    private double scalingValueCutoff; //// testen verschillende waarden!
+    private double scalingValue;
     /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
     /** The Random used to choose a (pseudo)random pixel and modify it (pseudo)randomly. */
@@ -75,6 +74,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private ImageProcessor outIp;
     private ImagePlus outImp;
     private int[][] outMatrix;
+    private double multiplyColorValue = 1.0;
     
 
     /** Set all requirements for plug-in to run. */
@@ -125,7 +125,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 5);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
-        gd.addNumericField("Scaling value", this.scalingValue, 2);
+        gd.addNumericField("Multiply image colors", this.multiplyColorValue, 2);
         gd.addNumericField("Blur radius", this.blurRadius, 2);
         gd.addPreviewCheckbox(pfr, "Preview blurred image...");
         gd.addDialogListener(this);
@@ -157,7 +157,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.darkCountRate = gd.getNextNumber();
         this.regularizationFactor = gd.getNextNumber();
-        this.scalingValue = gd.getNextNumber();
+        this.multiplyColorValue = gd.getNextNumber();
         this.blurRadius = gd.getNextNumber();
 
         // Check if given arguments are correct.
@@ -169,10 +169,10 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         } else if (this.regularizationFactor > 1) {
             this.regularizationFactor = 1;
         }
-        if (this.scalingValue < 2){
-            this.scalingValue = 2;
+        if (this.multiplyColorValue < 0.01){
+            this.multiplyColorValue = 0.01;
         }
-        this.scalingValueCutoff = this.scalingValue / 100.0;
+        
         if (this.blurRadius < 0.1){
             this.blurRadius = 0.1;
         }
@@ -192,6 +192,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      */
     @Override
     public void run(final ImageProcessor originalIp) {
+        ImageProcessor multipliedIp;
         boolean continueLoop = true;
         double newMeritValue;
         double bestMeritValue;
@@ -199,21 +200,30 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         int totalModifications = 0;
         int iterations = 0;
         
+        
         // Set N passes to the total number of necessary scaling adjustments until the scaling value cutoff is reached
         //this.setNPasses((int)(Math.log(this.scalingValueCutoff/this.scalingValue)/Math.log(0.9)));
 
         // If previewing is enabled, just perform preprocessing on the opened window.
         if (this.previewing) {
+            originalIp.multiply(this.multiplyColorValue);
             this.blurrer.blurGaussian(originalIp, this.blurRadius);
             return;
         }
-
-        this.createOutputImage(originalIp);
+        
+        multipliedIp = originalIp.duplicate();
+        multipliedIp.multiply(this.multiplyColorValue);
+        
+        this.createOutputImage(multipliedIp);
+        
+        this.scalingValue = this.getMaximumValue(this.outIp.getIntArray()) / 2;
+        System.out.println(this.scalingValue + "");
+        
         
         // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
         this.outMatrix = this.outIp.getIntArray();
         this.dctCalc = new DctCalculator(this.dctBlockSize, this.outMatrix);
-        this.logLikeCalc = new LogLikelihoodCalculator(originalIp.getIntArray(), this.outMatrix, this.darkCountRate);
+        this.logLikeCalc = new LogLikelihoodCalculator(multipliedIp.getIntArray(), this.outMatrix, this.darkCountRate);
         
         bestMeritValue = this.calculateMerit();
         
@@ -234,6 +244,18 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         }
 
     }
+    
+    private int getMaximumValue(int[][] pixelMatrix) {
+        int maxValue = (int) Double.NEGATIVE_INFINITY;
+        for (int[] row : pixelMatrix){
+            for (int pixel : row){
+                if (pixel > maxValue) {
+                    maxValue = pixel;
+                }
+            }
+        }
+        return maxValue;
+    }
 
     /**
      * Creates an output image (opened in a new window) of an image processer.
@@ -251,10 +273,12 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     
     private boolean testContinueLoop(int iterations, int acceptedModifications, int totalModifications){
         if (iterations % 10000 == 0){
-            if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.01){
+            if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.05){
                 this.scalingValue *= 0.9;
-                if (this.scalingValue < this.scalingValueCutoff){
-                        return false;
+                System.out.println("scaling down " + this.scalingValue);
+                if (this.scalingValue < this.scalingValue/100){
+                    System.out.println("done");    
+                    return false;
                     }
             }
             acceptedModifications = 0;
