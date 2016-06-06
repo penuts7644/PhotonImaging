@@ -15,9 +15,9 @@ public class DctCalculator {
     private double totalSparsity;
     private double[] temporaryCoefficients;
     private double temporarySparsity;
-    private int temporaryX;
-    private int temporaryY;
-    private int temporaryColor;
+//    private int temporaryX;
+//    private int temporaryY;
+//    private int temporaryColor;
 
     public DctCalculator(int dctBlockSize, int[][] matrix) {
         // check if power of 2
@@ -56,10 +56,17 @@ public class DctCalculator {
         return this.calculateMatrixSparsity(coefficients[0], coefficients[1]);
     }
     
+    
+      
     public void testEstimatedSparsitySoFar(){
-        System.out.println("Your estimated sparsity so far is: " +  this.totalSparsity);
-        System.out.println("When calculating the new sparsity for the whole image, the outcome is: " + this.calculateMatrixSparsity(this.calculateCoefficients(this.matrix)));
+        double calculatedSparsity;
+        calculatedSparsity = this.calculateMatrixSparsity(this.calculateCoefficients(this.matrix)); 
+        System.out.println("*** Matrix Sparsity ***");
+        System.out.println("Estimated so far: " + this.totalSparsity);
+        System.out.println("Calculated value: " + calculatedSparsity);
+        System.out.println("Difference: " + Math.abs(this.totalSparsity - calculatedSparsity));
     }
+   
     
     public double tryModification(int xCoordinate, int yCoordinate, int newColorValue){
         if (xCoordinate > this.matrix.length || yCoordinate > this.matrix[0].length){
@@ -78,9 +85,9 @@ public class DctCalculator {
         originalMatrixPartCoefficients = this.calculateCoefficients(originalMatrixPart);
         modifiedMatrixPartCoefficients = this.calculateCoefficients(modifiedMatrixPart);
         
-        this.temporaryX = xCoordinate;
-        this.temporaryY = yCoordinate;
-        this.temporaryColor = newColorValue;
+//        this.temporaryX = xCoordinate;
+//        this.temporaryY = yCoordinate;
+//        this.temporaryColor = newColorValue;
         this.temporaryCoefficients[0] = this.totalCoefficients[0] - originalMatrixPartCoefficients[0] + modifiedMatrixPartCoefficients[0];
         this.temporaryCoefficients[1] = this.totalCoefficients[1] - originalMatrixPartCoefficients[1] + modifiedMatrixPartCoefficients[1];
         this.temporarySparsity = this.calculateMatrixSparsity(this.temporaryCoefficients);
@@ -89,7 +96,7 @@ public class DctCalculator {
     }
     
     public void performModification(){
-        this.matrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
+//        this.matrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
         this.totalCoefficients[0] = this.temporaryCoefficients[0];
         this.totalCoefficients[1] = this.temporaryCoefficients[1];
         this.totalSparsity = this.temporarySparsity;
