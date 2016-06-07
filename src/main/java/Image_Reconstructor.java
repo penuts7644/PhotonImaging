@@ -59,6 +59,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private double blurRadius = 1.5;
     /** The scaling value used to adjust random values to create new pixel colors. */
     private double scalingValue;
+    private double scalingValueCutoff;
     /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
     /** The Random used to choose a (pseudo)random pixel and modify it (pseudo)randomly. */
@@ -76,6 +77,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private int[][] outMatrix;
     private double multiplyColorValue = 1.0;
     private long time = System.currentTimeMillis();
+    private double acceptedModifications = 0.0;
+    private int iterations = 0;
     
 
     /** Set all requirements for plug-in to run. */
@@ -197,9 +200,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         boolean continueLoop = true;
         double newMeritValue;
         double bestMeritValue;
-        int acceptedModifications = 0;
-        int totalModifications = 0;
-        int iterations = 0;
         
         
         // Set N passes to the total number of necessary scaling adjustments until the scaling value cutoff is reached
@@ -218,6 +218,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         this.createOutputImage(multipliedIp);
         
         this.scalingValue = this.getMaximumValue(this.outIp.getIntArray()) / 2;
+        this.scalingValueCutoff = this.scalingValue / 20.0;
         System.out.println("scalingvalue, elapsed time, total iterations");
         
         // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
@@ -228,19 +229,18 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         bestMeritValue = this.calculateMerit();
         
         while (continueLoop) {
-            iterations++;
-            totalModifications++;
+            this.iterations++;
             
             this.selectNewModification();
             newMeritValue = calculateMeritWithModification();
             
             if (newMeritValue > bestMeritValue){
-                acceptedModifications++;
+                this.acceptedModifications++;
                 bestMeritValue = newMeritValue;
                 this.acceptModification();
             } 
 
-            continueLoop = this.testContinueLoop(iterations, acceptedModifications, totalModifications);
+            continueLoop = this.testContinueLoop();
         }
 
     }
@@ -271,18 +271,23 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         outputWindow.setVisible(true);
     }
     
-    private boolean testContinueLoop(int iterations, int acceptedModifications, int totalModifications){
-        if (iterations % 10000 == 0){
-            if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.05){
+    private boolean testContinueLoop(){
+        //System.out.println((this.outIp.getWidth() * this.outIp.getHeight() / 10) + "");
+        
+        //int iterationCheckpoint = this.outIp.getWidth() * this.outIp.getHeight() / 5;
+        
+        if (this.iterations % 1000 == 0){
+            System.out.println("a/t " + (this.acceptedModifications/1000.0));
+            System.out.println("a " + this.acceptedModifications);
+            if (this.iterations % 3000 == 0 && this.acceptedModifications < 50){
                 this.scalingValue *= 0.9;
-                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/1000.0) + ", " + iterations);
-                if (this.scalingValue < this.scalingValue/20){
+                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/1000.0) + ", " + this.iterations);
+                if (this.scalingValue < this.scalingValueCutoff){
                     System.out.println("done");    
                     return false;
                     }
             }
-            acceptedModifications = 0;
-            totalModifications = 0;
+            this.acceptedModifications = 0.0;
         }
         return true;
     }
