@@ -56,7 +56,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     /** The regularization factor (lambda). Used to determine the importance of log likelihood versus image sparsity. */
     private double regularizationFactor = 0.5;
     /** The blur radius used by the Gaussian Blurrer. */
-    private double blurRadius = 1.5;
+    private double blurRadius = 2.0;
     /** The scaling value used to adjust random values to create new pixel colors. */
     private double scalingValue;
     private double scalingValueCutoff;
@@ -274,12 +274,14 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private boolean testContinueLoop(){
         //System.out.println((this.outIp.getWidth() * this.outIp.getHeight() / 10) + "");
         
-        //int iterationCheckpoint = this.outIp.getWidth() * this.outIp.getHeight() / 5;
+        //int iterationCheckpoint = this.outIp.getWidth() * this.outIp.getHeight() / 10;
         
         if (this.iterations % 1000 == 0){
-            System.out.println("a/t " + (this.acceptedModifications/1000.0));
-            System.out.println("a " + this.acceptedModifications);
-            if (this.iterations % 3000 == 0 && this.acceptedModifications < 50){
+            // In the original algorithm, every 3000 iterations 
+            // there was checked whether acceptedModifications < 5% of the last 1000 iterations
+            // if (this.iterations % 3000 && this.acceptedModifications < 50){...}
+            // This has been simplified to the following because it fits better with our data.
+            if (this.acceptedModifications < 150){ 
                 this.scalingValue *= 0.9;
                 System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/1000.0) + ", " + this.iterations);
                 if (this.scalingValue < this.scalingValueCutoff){
