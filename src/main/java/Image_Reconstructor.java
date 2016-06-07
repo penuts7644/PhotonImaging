@@ -75,6 +75,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private ImagePlus outImp;
     private int[][] outMatrix;
     private double multiplyColorValue = 1.0;
+    private long time = System.currentTimeMillis();
     
 
     /** Set all requirements for plug-in to run. */
@@ -217,8 +218,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         this.createOutputImage(multipliedIp);
         
         this.scalingValue = this.getMaximumValue(this.outIp.getIntArray()) / 2;
-        System.out.println(this.scalingValue + "");
-        
+        System.out.println("scalingvalue, elapsed time, total iterations");
         
         // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
         this.outMatrix = this.outIp.getIntArray();
@@ -266,7 +266,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private void createOutputImage(final ImageProcessor ip) {
         this.outIp = ip.duplicate();
         this.blurrer.blurGaussian(outIp, this.blurRadius);
-        this.outImp = new ImagePlus("Reconstructed Image", this.outIp);
+        this.outImp = new ImagePlus("Reconstructed Image |blur:" + this.blurRadius + "|darkcount:" + this.darkCountRate + "|multip:" + this.multiplyColorValue + "|regfact:" + this.regularizationFactor, this.outIp);
         ImageWindow outputWindow = new ImageWindow(this.outImp);
         outputWindow.setVisible(true);
     }
@@ -275,8 +275,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         if (iterations % 10000 == 0){
             if (iterations % 30000 == 0 && acceptedModifications/totalModifications < 0.05){
                 this.scalingValue *= 0.9;
-                System.out.println("scaling down " + this.scalingValue);
-                if (this.scalingValue < this.scalingValue/100){
+                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/1000.0) + ", " + iterations);
+                if (this.scalingValue < this.scalingValue/20){
                     System.out.println("done");    
                     return false;
                     }
