@@ -170,9 +170,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         }
         if (this.regularizationFactor < 0) {
             this.regularizationFactor = 0;
-        } else if (this.regularizationFactor > 1) {
-            this.regularizationFactor = 1;
-        }
+        } 
         if (this.multiplyColorValue < 0.01){
             this.multiplyColorValue = 0.01;
         }
@@ -281,7 +279,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             // there was checked whether acceptedModifications < 5% of the last 1000 iterations
             // if (this.iterations % 3000 && this.acceptedModifications < 50){...}
             // This has been simplified to the following because it fits better with our data.
-            if (this.acceptedModifications < 150){ 
+            //System.out.println(this.acceptedModifications);
+            if (this.acceptedModifications < 250){ 
                 this.scalingValue *= 0.9;
                 System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/1000.0) + ", " + this.iterations);
                 if (this.scalingValue < this.scalingValueCutoff){
