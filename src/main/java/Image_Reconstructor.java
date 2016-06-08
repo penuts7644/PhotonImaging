@@ -80,7 +80,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private double acceptedModifications = 0.0;
     private int iterations = 0;
     private double modificationThreshold = 25.0;
-    private double iterationsPerCheck = 1000;
+    private double iterationsPerCheck = 10000;
     
 
     /** Set all requirements for plug-in to run. */
@@ -341,10 +341,15 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             + "option.</b><br>"
             + "The original image is changed randomly, and the modifications are evaluated. "
             + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
+            + "<b>Parameter explaination</b>"
+            + "Dark count rate"
+            + "Regularization factor" 
+            + "Modification threshold" 
+            + "Multiply image colors" 
+            + "Blur radius"
             + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
-
 
     /**
      * Main method for debugging.
