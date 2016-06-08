@@ -79,6 +79,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private long time = System.currentTimeMillis();
     private double acceptedModifications = 0.0;
     private int iterations = 0;
+    private double modificationThreshold = 25.0;
+    private double iterationsPerCheck = 1000;
     
 
     /** Set all requirements for plug-in to run. */
@@ -129,6 +131,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // Add fields to dialog.
         gd.addNumericField("Dark count rate", this.darkCountRate, 5);
         gd.addNumericField("Regularization factor", this.regularizationFactor, 5);
+        gd.addNumericField("Modification threshold", this.modificationThreshold, 2, 6, "%");
         gd.addNumericField("Multiply image colors", this.multiplyColorValue, 2);
         gd.addNumericField("Blur radius", this.blurRadius, 2);
         gd.addPreviewCheckbox(pfr, "Preview blurred image...");
@@ -161,6 +164,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
         this.darkCountRate = gd.getNextNumber();
         this.regularizationFactor = gd.getNextNumber();
+        double modificationThresholdPercentage = gd.getNextNumber();
         this.multiplyColorValue = gd.getNextNumber();
         this.blurRadius = gd.getNextNumber();
 
@@ -170,11 +174,16 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         }
         if (this.regularizationFactor < 0) {
             this.regularizationFactor = 0;
-        } 
+        }
+        if (modificationThresholdPercentage < 1.0){
+            modificationThresholdPercentage = 1.0;
+        } else if (modificationThresholdPercentage > 40.0){
+            modificationThresholdPercentage = 40.0;
+        }
+        this.modificationThreshold = this.iterationsPerCheck / 100 * modificationThresholdPercentage;
         if (this.multiplyColorValue < 0.01){
             this.multiplyColorValue = 0.01;
         }
-        
         if (this.blurRadius < 0.1){
             this.blurRadius = 0.1;
         }
@@ -274,15 +283,16 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         
         //int iterationCheckpoint = this.outIp.getWidth() * this.outIp.getHeight() / 10;
         
-        if (this.iterations % 1000 == 0){
+        if (this.iterations % this.iterationsPerCheck == 0){
             // In the original algorithm, every 3000 iterations 
             // there was checked whether acceptedModifications < 5% of the last 1000 iterations
             // if (this.iterations % 3000 && this.acceptedModifications < 50){...}
             // This has been simplified to the following because it fits better with our data.
             //System.out.println(this.acceptedModifications);
-            if (this.acceptedModifications < 250){ 
+            System.out.println(this.iterationsPerCheck + " , " + this.modificationThreshold + " " + this.iterations + " " + this.acceptedModifications);
+            if (this.acceptedModifications < this.modificationThreshold){ 
                 this.scalingValue *= 0.9;
-                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/1000.0) + ", " + this.iterations);
+                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/this.iterationsPerCheck) + ", " + this.iterations);
                 if (this.scalingValue < this.scalingValueCutoff){
                     System.out.println("done");    
                     return false;
@@ -318,8 +328,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // Pick a random pixel and a random new color for that pixel
         this.randomX = this.randomGenerator.nextInt(this.outIp.getWidth());
         this.randomY = this.randomGenerator.nextInt(this.outIp.getHeight());
-        // The original algorithm used -0.5 here, but it has been replaced by 0.4 to allow more increases in pixel color instead of decreases.
-        this.randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.4) * this.scalingValue + this.outIp.get(randomX, randomY)));
+        this.randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.5) * this.scalingValue + this.outIp.get(randomX, randomY)));
     }
 
 
