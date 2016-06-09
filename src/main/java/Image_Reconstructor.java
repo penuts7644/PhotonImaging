@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -32,41 +31,64 @@ import java.awt.AWTEvent;
 import java.util.Random;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
-
 /**
  * Image_Reconstructor
  *
- * This class can be used to reconstruct the output images of Photon_Image_Processor, if there was not enough input
- * data available. Parts of the algorithm were derived from the article 'Imaging with a small number of photons'[1].
- * Random changes are made to the original file, and various formulas from the article are used to tell whether the
- * changes improved the image.
+ * This class can be used to reconstruct the output images of
+ * Photon_Image_Processor, if there was not enough input data available. Parts
+ * of the algorithm were derived from the article 'Imaging with a small number
+ * of photons'[1]. Random changes are made to the original file, and various
+ * formulas from the article are used to tell whether the changes improved the
+ * image.
  *
- * 1. Morris, P. A. et al. Imaging with a small number of photons. Nat. Commun. 6:5913 doi: 10.1038/ncomms6913 (2015).
+ * 1. Morris, P. A. et al. Imaging with a small number of photons. Nat. Commun.
+ * 6:5913 doi: 10.1038/ncomms6913 (2015).
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
-
 public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogListener {
-    /** The ImagePlus given by the user. */
+
+    /**
+     * The ImagePlus given by the user.
+     */
     protected ImagePlus imp;
-    /** The size for the DCT matrix to use. */
+    /**
+     * The size for the DCT matrix to use.
+     */
     private final int dctBlockSize = 8;
-    /** The estimated dark count rate of the camera. */
+    /**
+     * The estimated dark count rate of the camera.
+     */
     private double darkCountRate = 0.00017;
-    /** The regularization factor (lambda). Used to determine the importance of log likelihood versus image sparsity. */
+    /**
+     * The regularization factor (lambda). Used to determine the importance of
+     * log likelihood versus image sparsity.
+     */
     private double regularizationFactor = 0.5;
-    /** The blur radius used by the Gaussian Blurrer. */
+    /**
+     * The blur radius used by the Gaussian Blurrer.
+     */
     private double blurRadius = 2.0;
-    /** The scaling value used to adjust random values to create new pixel colors. */
+    /**
+     * The scaling value used to adjust random values to create new pixel
+     * colors.
+     */
     private double scalingValue;
     private double scalingValueCutoff;
-    /** This boolean tells whether the 'previewing' window is open. */
+    /**
+     * This boolean tells whether the 'previewing' window is open.
+     */
     private boolean previewing = false;
-    /** The Random used to choose a (pseudo)random pixel and modify it (pseudo)randomly. */
+    /**
+     * The Random used to choose a (pseudo)random pixel and modify it
+     * (pseudo)randomly.
+     */
     private Random randomGenerator;
-    /** The Gaussian Blurrer used for preprocessing the image. */
+    /**
+     * The Gaussian Blurrer used for preprocessing the image.
+     */
     private GaussianBlur blurrer;
-    
+
     private DctCalculator dctCalc;
     private LogLikelihoodCalculator logLikeCalc;
     private int randomX;
@@ -81,17 +103,18 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private int iterations = 0;
     private double modificationThreshold = 25.0;
     private double iterationsPerCheck = 10000;
-    
 
-    /** Set all requirements for plug-in to run. */
+    /**
+     * Set all requirements for plug-in to run.
+     */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16;
 
     /**
      * Setup method as initializer.
      *
-     * Setup method is the initializer for this class and will always be run first. Arguments can be given
-     * here. Setup method needs to be overridden.
+     * Setup method is the initializer for this class and will always be run
+     * first. Arguments can be given here. Setup method needs to be overridden.
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
@@ -115,9 +138,11 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     }
 
     /**
-     * The showDialog method will be run after the setup and creates the dialog window and shows it.
+     * The showDialog method will be run after the setup and creates the dialog
+     * window and shows it.
      *
-     * Dialog window has support for dark count rate and regularzation factor. There is no preview possible.
+     * Dialog window has support for dark count rate and regularzation factor.
+     * There is no preview possible.
      *
      * @param imp The ImagePlus.
      * @param command String containing the command.
@@ -154,7 +179,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     }
 
     /**
-     * This method checks whether the user has changed the input fields, and saves the new values.
+     * This method checks whether the user has changed the input fields, and
+     * saves the new values.
      *
      * @param gd The dialog window.
      * @param e An AWTEvent.
@@ -175,28 +201,26 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         if (this.regularizationFactor < 0) {
             this.regularizationFactor = 0;
         }
-        if (modificationThresholdPercentage < 1.0){
+        if (modificationThresholdPercentage < 1.0) {
             modificationThresholdPercentage = 1.0;
-        } else if (modificationThresholdPercentage > 40.0){
+        } else if (modificationThresholdPercentage > 40.0) {
             modificationThresholdPercentage = 40.0;
         }
         this.modificationThreshold = this.iterationsPerCheck / 100 * modificationThresholdPercentage;
-        if (this.multiplyColorValue < 0.01){
+        if (this.multiplyColorValue < 0.01) {
             this.multiplyColorValue = 0.01;
         }
-        if (this.blurRadius < 0.1){
+        if (this.blurRadius < 0.1) {
             this.blurRadius = 0.1;
         }
-
-        
 
         return (!gd.invalidNumber());
     }
 
-    
     /**
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
-     * This method does most of the work, calls all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects
+     * this class via plug-ins in Fiji. This method does most of the work, calls
+     * all other methods in the right order.
      *
      * @param originalIp image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
@@ -207,55 +231,53 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         boolean continueLoop = true;
         double newMeritValue;
         double bestMeritValue;
-        
-        
+
         // Set N passes to the total number of necessary scaling adjustments until the scaling value cutoff is reached
         //this.setNPasses((int)(Math.log(this.scalingValueCutoff/this.scalingValue)/Math.log(0.9)));
-
         // If previewing is enabled, just perform preprocessing on the opened window.
         if (this.previewing) {
             originalIp.multiply(this.multiplyColorValue);
             this.blurrer.blurGaussian(originalIp, this.blurRadius);
             return;
         }
-        
+
         multipliedIp = originalIp.duplicate();
         multipliedIp.multiply(this.multiplyColorValue);
-        
+
         this.createOutputImage(multipliedIp);
-        
+
         this.scalingValue = this.getMaximumValue(this.outIp.getIntArray()) / 2;
         this.scalingValueCutoff = this.scalingValue / 20.0;
         System.out.println("scalingvalue, elapsed time, total iterations");
-        
+
         // With the output matrix, set up the DctCalculator and LogLikelihoodCalculator
         this.outMatrix = this.outIp.getIntArray();
         this.dctCalc = new DctCalculator(this.dctBlockSize, this.outMatrix);
         this.logLikeCalc = new LogLikelihoodCalculator(multipliedIp.getIntArray(), this.outMatrix, this.darkCountRate);
-        
+
         bestMeritValue = this.calculateMerit();
-        
+
         while (continueLoop) {
             this.iterations++;
-            
+
             this.selectNewModification();
             newMeritValue = calculateMeritWithModification();
-            
-            if (newMeritValue > bestMeritValue){
+
+            if (newMeritValue > bestMeritValue) {
                 this.acceptedModifications++;
                 bestMeritValue = newMeritValue;
                 this.acceptModification();
-            } 
+            }
 
             continueLoop = this.testContinueLoop();
         }
 
     }
-    
+
     private int getMaximumValue(int[][] pixelMatrix) {
         int maxValue = (int) Double.NEGATIVE_INFINITY;
-        for (int[] row : pixelMatrix){
-            for (int pixel : row){
+        for (int[] row : pixelMatrix) {
+            for (int pixel : row) {
                 if (pixel > maxValue) {
                     maxValue = pixel;
                 }
@@ -277,85 +299,83 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         ImageWindow outputWindow = new ImageWindow(this.outImp);
         outputWindow.setVisible(true);
     }
-    
-    private boolean testContinueLoop(){
+
+    private boolean testContinueLoop() {
         //System.out.println((this.outIp.getWidth() * this.outIp.getHeight() / 10) + "");
-        
+
         //int iterationCheckpoint = this.outIp.getWidth() * this.outIp.getHeight() / 10;
-        
-        if (this.iterations % this.iterationsPerCheck == 0){
+        if (this.iterations % this.iterationsPerCheck == 0) {
             // In the original algorithm, every 3000 iterations 
             // there was checked whether acceptedModifications < 5% of the last 1000 iterations
             // if (this.iterations % 3000 && this.acceptedModifications < 50){...}
             // This has been simplified to the following because it fits better with our data.
             //System.out.println(this.acceptedModifications);
             System.out.println(this.iterationsPerCheck + " , " + this.modificationThreshold + " " + this.iterations + " " + this.acceptedModifications);
-            if (this.acceptedModifications < this.modificationThreshold){ 
+            if (this.acceptedModifications < this.modificationThreshold) {
                 this.scalingValue *= 0.9;
-                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time)/this.iterationsPerCheck) + ", " + this.iterations);
-                if (this.scalingValue < this.scalingValueCutoff){
-                    System.out.println("done");    
+                System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time) / this.iterationsPerCheck) + ", " + this.iterations);
+                if (this.scalingValue < this.scalingValueCutoff) {
+                    System.out.println("done");
                     return false;
-                    }
+                }
             }
             this.acceptedModifications = 0.0;
         }
         return true;
     }
 
-    private void acceptModification(){
+    private void acceptModification() {
         this.outIp.set(this.randomX, this.randomY, this.randomColorValue);
         this.outMatrix[this.randomX][this.randomY] = this.randomColorValue;
         this.dctCalc.performModification();
         this.logLikeCalc.performModification();
         this.outImp.updateAndRepaintWindow();
     }
-    
-    private double calculateMerit(){
-        return this.logLikeCalc.getTotalLogLikelihood() 
-                - this.regularizationFactor 
+
+    private double calculateMerit() {
+        return this.logLikeCalc.getTotalLogLikelihood()
+                - this.regularizationFactor
                 * this.dctCalc.getTotalSparsity();
     }
-    
-    private double calculateMeritWithModification(){
-        return this.logLikeCalc.tryModification(this.randomX, this.randomY, this.randomColorValue) 
-                - this.regularizationFactor 
+
+    private double calculateMeritWithModification() {
+        return this.logLikeCalc.tryModification(this.randomX, this.randomY, this.randomColorValue)
+                - this.regularizationFactor
                 * this.dctCalc.tryModification(this.randomX, this.randomY, this.randomColorValue);
     }
-    
-    
-    private void selectNewModification(){
+
+    private void selectNewModification() {
         // Pick a random pixel and a random new color for that pixel
         this.randomX = this.randomGenerator.nextInt(this.outIp.getWidth());
         this.randomY = this.randomGenerator.nextInt(this.outIp.getHeight());
         this.randomColorValue = (int) (Math.abs((this.randomGenerator.nextDouble() - 0.5) * this.scalingValue + this.outIp.get(randomX, randomY)));
     }
 
-
     /**
      * This method displays the about information of the plug-in.
      */
     public void showAbout() {
         IJ.showMessage("About Image Reconstructor", "<html>"
-            + "<b>This option can be used to reconstruct the output image created by the 'Process Photon Images' "
-            + "option.</b><br>"
-            + "The original image is changed randomly, and the modifications are evaluated. "
-            + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
-            + "<b>Parameter explaination</b>"
-            + "Dark count rate"
-            + "Regularization factor" 
-            + "Modification threshold" 
-            + "Multiply image colors" 
-            + "Blur radius"
-            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
+                + "<b>This option can be used to reconstruct the output image created by the 'Process Photon Images' "
+                + "option.</b><br>"
+                + "The original image is changed randomly, and the modifications are evaluated. "
+                + "Parts of the algorithm were derived from the article 'Imaging with a small number of photons', by P. A. Morris et al. <br><br>"
+                + "<b>Parameter explaination</b>"
+                + "Dark count rate"
+                + "Regularization factor"
+                + "Modification threshold"
+                + "Multiply image colors"
+                + "Blur radius"
+                + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     * For debugging, it is convenient to have a method that starts ImageJ,
+     * loads an image and calls the plug-in, e.g. after setting breakpoints.
+     * Main method will get executed when running this file from IDE.
      *
      * @param args unused.
      */
@@ -383,10 +403,10 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     }
 
     @Override
-    public void setNPasses(int nPasses) {}
+    public void setNPasses(int nPasses) {
+    }
 
 }
-
 
 //    /**
 //     * Copy a part of the source matrix, given a midpoint and new matrix size.
@@ -439,9 +459,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 //        }
 //
 //    }
-
-
-
 //    /**
 //     * This merit function calculates the log likelihood and sparsity for a modified matrix.
 //     * The goal is to maximize the outcome of this merit function. The regularization factor
@@ -456,7 +473,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 //        return this.calculateLogLikelihood(originalMatrix, modifiedMatrix) - this.regularizationFactor
 //                * totalMatrixSparsity;
 //    }
-
 //    /**
 //     * Calculates the log likelihood for the modified matrix given the original matrix.
 //     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.

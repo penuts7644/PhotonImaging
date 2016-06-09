@@ -30,26 +30,36 @@ import java.nio.file.Paths;
 /**
  * Recursive_TIFF_Opener
  *
- * This class can be used to open all TIFF files in a directory as virtual stack.
- * Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual
- * stack can be used as input for the 'Process Photon Images' option.
+ * This class can be used to open all TIFF files in a directory as virtual
+ * stack. Each sub-directory in the user selected directory will be searched for
+ * any containing TIFF files. The opened virtual stack can be used as input for
+ * the 'Process Photon Images' option.
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
 public final class Recursive_TIFF_Opener implements PlugIn {
 
-    /** The directory path given by user. */
+    /**
+     * The directory path given by user.
+     */
     private String dir = "";
-    /** A VirtualStack for TIFF files. */
+    /**
+     * A VirtualStack for TIFF files.
+     */
     private VirtualStack vis;
-    /** The window height for the VirtualStack, default is 0. */
+    /**
+     * The window height for the VirtualStack, default is 0.
+     */
     private int winHeight = 0;
-    /** The window width for the VirtualStack, default is 0. */
+    /**
+     * The window width for the VirtualStack, default is 0.
+     */
     private int winWidth = 0;
 
     /**
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
-     * This method does most of the work, calls all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects
+     * this class via plug-ins in Fiji. This method does most of the work, calls
+     * all other methods in the right order.
      *
      * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
@@ -69,7 +79,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
 
             // Search directory.
             searchDirectory(this.dir);
-            
+
             // Make new ImagePlus from VirtualStack with chosen directory as name.
             ImagePlus imp = new ImagePlus(this.dir, this.vis);
 
@@ -85,8 +95,9 @@ public final class Recursive_TIFF_Opener implements PlugIn {
     /**
      * This method searches the user given directory for each Tiff file.
      *
-     * When the first file has been found, setVirtualStack is called. For each directory found, searchDirectory is
-     * called un till all files are found. Each File is added to the VirtualStack.
+     * When the first file has been found, setVirtualStack is called. For each
+     * directory found, searchDirectory is called un till all files are found.
+     * Each File is added to the VirtualStack.
      *
      * @param dir File with user selected directory path.
      * @throws java.io.IOException
@@ -107,7 +118,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
             if (this.vis != null) {
                 this.vis.addSlice(filePath.toString().replace(this.dir, ""));
 
-            // If VirtualStack not yet set, set it (Only the first found TIFF file go's in here) and add TIFF file.
+                // If VirtualStack not yet set, set it (Only the first found TIFF file go's in here) and add TIFF file.
             } else if (this.vis == null) {
                 setVirtualStack(filePath);
                 this.vis.addSlice(filePath.toString().replace(this.dir, ""));
@@ -138,18 +149,19 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      */
     public void showAbout() {
         IJ.showMessage("About Open TIFF Files", "<html>"
-            + "<b>This option can be used to open all TIFF files in a directory as virtual stack.</b><br>"
-            + "Each sub-directory in the user selected directory will be searched for any containing TIFF files. The "
-            + "opened virtual stack can be used as input for the 'Process Photon Images' option.<br><br>"
-            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
+                + "<b>This option can be used to open all TIFF files in a directory as virtual stack.</b><br>"
+                + "Each sub-directory in the user selected directory will be searched for any containing TIFF files. The "
+                + "opened virtual stack can be used as input for the 'Process Photon Images' option.<br><br>"
+                + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     * For debugging, it is convenient to have a method that starts ImageJ,
+     * loads an image and calls the plug-in, e.g. after setting breakpoints.
+     * Main method will get executed when running this file from IDE.
      *
      * @param args unused
      */

@@ -30,34 +30,49 @@ import java.util.TreeSet;
 /**
  * Image_Thresholder
  *
- * This class can be used to filter noise from the output image of Photon_Image_Processor.
- * All pixels will get a new value based on there current value minus the given threshold value.
+ * This class can be used to filter noise from the output image of
+ * Photon_Image_Processor. All pixels will get a new value based on there
+ * current value minus the given threshold value.
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
 public final class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
-    /** The matrix containing all pixel values. */
+    /**
+     * The matrix containing all pixel values.
+     */
     private int[][] pixelValueMatrix;
-    /** A sorted array containing all unique pixel values. */
+    /**
+     * A sorted array containing all unique pixel values.
+     */
     private Integer[] uniquePixelValues;
-    /** The size of the slider (= amount of unique values). */
+    /**
+     * The size of the slider (= amount of unique values).
+     */
     private int sliderSize = 0;
-    /** This boolean tells whether the 'previewing' window is open. */
+    /**
+     * This boolean tells whether the 'previewing' window is open.
+     */
     private boolean previewing = false;
-    /** The threshold pixel value under which the pixel color is set to black. */
+    /**
+     * The threshold pixel value under which the pixel color is set to black.
+     */
     private int threshold = 0;
-    /** The number of passes for the progress bar, default is 0. */
+    /**
+     * The number of passes for the progress bar, default is 0.
+     */
     private int nPasses = 0;
-    /** Set all requirements for plug-in to run. */
+    /**
+     * Set all requirements for plug-in to run.
+     */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16;
 
     /**
      * Setup method as initializer.
      *
-     * Setup method is the initializer for this class and will always be run first. Arguments can be given
-     * here. Setup method needs to be overridden.
+     * Setup method is the initializer for this class and will always be run
+     * first. Arguments can be given here. Setup method needs to be overridden.
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
@@ -88,9 +103,11 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     }
 
     /**
-     * The showDialog method will be run after the setup and creates the dialog window and shows it.
+     * The showDialog method will be run after the setup and creates the dialog
+     * window and shows it.
      *
-     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run is executed once).
+     * Dialog window has support for noise tolerance value, preprocessing step
+     * and live preview (run is executed once).
      *
      * @param imp The ImagePlus.
      * @param command String containing the command.
@@ -123,7 +140,8 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     }
 
     /**
-     * This method checks whether the user has changed the input fields, and saves the new values.
+     * This method checks whether the user has changed the input fields, and
+     * saves the new values.
      *
      * @param gd The dialog window.
      * @param e An AWTEvent.
@@ -154,7 +172,8 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     }
 
     /**
-     * This method creates a set of pixel values (excluding zero) that are in the pixel value matrix.
+     * This method creates a set of pixel values (excluding zero) that are in
+     * the pixel value matrix.
      *
      */
     private void getUniquePixelValues() {
@@ -174,8 +193,9 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     }
 
     /**
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
-     * This method does most of the work, calls all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects
+     * this class via plug-ins in Fiji. This method does most of the work, calls
+     * all other methods in the right order.
      *
      * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
@@ -196,10 +216,9 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
         }
     }
 
-
-
     /**
-     * This method gets the current pixel value and sets it to the current pixel value minus the threshold value.
+     * This method gets the current pixel value and sets it to the current pixel
+     * value minus the threshold value.
      *
      * @param xCor X position of the pixel.
      * @param yCor Y position of the pixel.
@@ -216,18 +235,19 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      */
     public void showAbout() {
         IJ.showMessage("About Threshold Photon Count", "<html>"
-            + "<b>This option can be used to filter noise from the output image created by the 'Process Photon Images' "
-            + "option.</b><br>"
-            + "All pixels will get a new value based on there current value minus the given threshold value.<br><br>"
-            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
+                + "<b>This option can be used to filter noise from the output image created by the 'Process Photon Images' "
+                + "option.</b><br>"
+                + "All pixels will get a new value based on there current value minus the given threshold value.<br><br>"
+                + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     * For debugging, it is convenient to have a method that starts ImageJ,
+     * loads an image and calls the plug-in, e.g. after setting breakpoints.
+     * Main method will get executed when running this file from IDE.
      *
      * @param args unused
      */
