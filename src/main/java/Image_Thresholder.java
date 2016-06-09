@@ -38,33 +38,19 @@ import java.util.TreeSet;
  */
 public final class Image_Thresholder implements ExtendedPlugInFilter, DialogListener {
 
-    /**
-     * The matrix containing all pixel values.
-     */
+    /** The matrix containing all pixel values. */
     private int[][] pixelValueMatrix;
-    /**
-     * A sorted array containing all unique pixel values.
-     */
+    /** A sorted array containing all unique pixel values. */
     private Integer[] uniquePixelValues;
-    /**
-     * The size of the slider (= amount of unique values).
-     */
+    /** The size of the slider (= amount of unique values). */
     private int sliderSize = 0;
-    /**
-     * This boolean tells whether the 'previewing' window is open.
-     */
+    /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
-    /**
-     * The threshold pixel value under which the pixel color is set to black.
-     */
+    /** The threshold pixel value under which the pixel color is set to black. */
     private int threshold = 0;
-    /**
-     * The number of passes for the progress bar, default is 0.
-     */
+    /** The number of passes for the progress bar, default is 0. */
     private int nPasses = 0;
-    /**
-     * Set all requirements for plug-in to run.
-     */
+    /** Set all requirements for plug-in to run. */
     private final int flags = PlugInFilter.DOES_8G
             | PlugInFilter.DOES_16;
 
@@ -235,13 +221,16 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      */
     public void showAbout() {
         IJ.showMessage("About Threshold Photon Count", "<html>"
-                + "<b>This option can be used to filter noise from the output image created by the 'Process Photon Images' "
-                + "option.</b><br>"
-                + "All pixels will get a new value based on there current value minus the given threshold value.<br><br>"
+                + "<h1>Threshold Photon Count</h1>"
+                + "<b>This option can be used to filter noise from the output image created by 'Process Photon Images',"
+                + " and optionally prepare for 'Reconstruct Image'. </b> All pixels below the 'threshold' value are "
+                + "set to 0, and the remaining pixels are scaled to new values.<br><br>"
                 + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
+    
+    
     /**
      * Main method for debugging.
      *
@@ -260,13 +249,6 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
 
         // start ImageJ
         new ImageJ();
-
-        // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
-        ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
         // image.show();

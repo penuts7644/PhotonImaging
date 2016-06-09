@@ -39,21 +39,13 @@ import java.nio.file.Paths;
  */
 public final class Recursive_TIFF_Opener implements PlugIn {
 
-    /**
-     * The directory path given by user.
-     */
+    /** The directory path given by user. */
     private String dir = "";
-    /**
-     * A VirtualStack for TIFF files.
-     */
+    /** A VirtualStack for TIFF files. */
     private VirtualStack vis;
-    /**
-     * The window height for the VirtualStack, default is 0.
-     */
+    /** The window height for the VirtualStack, default is 0. */
     private int winHeight = 0;
-    /**
-     * The window width for the VirtualStack, default is 0.
-     */
+    /** The window width for the VirtualStack, default is 0. */
     private int winWidth = 0;
 
     /**
@@ -149,9 +141,10 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      */
     public void showAbout() {
         IJ.showMessage("About Open TIFF Files", "<html>"
-                + "<b>This option can be used to open all TIFF files in a directory as virtual stack.</b><br>"
-                + "Each sub-directory in the user selected directory will be searched for any containing TIFF files. The "
-                + "opened virtual stack can be used as input for the 'Process Photon Images' option.<br><br>"
+                + "<h1>Open TIFF Files</h1>"
+                + "<b>This option can be used to open all TIFF files in a directory, and the directories below, "
+                + "as virtual stack.</b> The opened virtual stack can be used as input for 'Process Photon Images'."
+                + "<br><br>"
                 + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
@@ -174,13 +167,6 @@ public final class Recursive_TIFF_Opener implements PlugIn {
 
         // start ImageJ
         new ImageJ();
-
-        // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
-        ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
         // image.show();

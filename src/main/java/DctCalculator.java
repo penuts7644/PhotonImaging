@@ -15,25 +15,46 @@
  */
 
 /**
+ * DctCalculator
+ * 
+ * This class can be used to track the changing matrix sparsity for an image that is being modified.
+ * With this DCT calculator, the total matrix sparsity only needs to be calculated once.
+ * When modifying the image, the potential new value can be estimated by only looking at the
+ * pixels in the block around the modified pixel. This is a lot faster than calculating the total
+ * sparsity value for the whole image again
  *
  * @author Lonneke Scheffer
  */
-public class DctCalculator {
+public final class DctCalculator {
 
+    /** The size for the DCT matrix to use. */
     private final int dctBlockSize;
+    /** The matrix containing the pixel values of the image. */
     private int[][] matrix;
+    /** The coefficients of the total image used to calculate the matrix sparsity. */
     private double[] totalCoefficients;
+    /** The calculated sparsity of the total image. */
     private double totalSparsity;
+    /** The coefficients of the modified image used to calculate the matrix sparsity. */
     private double[] temporaryCoefficients;
+    /** The calculated sparsity of the total modified image. */
     private double temporarySparsity;
 
-    public DctCalculator(int dctBlockSize, int[][] matrix) {
-        // check if power of 2
+    /**
+     * Create a new DCT calculator.
+     *
+     * @param dctBlockSize the size for the DCT blocks
+     * @param matrix the matrix containing pixel values of the input image
+     */
+    public DctCalculator(final int dctBlockSize, final int[][] matrix) {
+        // Check if the given block size is a power of 2
         if (!(((dctBlockSize & (dctBlockSize - 1)) == 0) && (dctBlockSize > 0))) {
             throw new ArithmeticException("Your given DCT block size (" + dctBlockSize + ") should be a power of 2!");
         }
+        // Check if the DCT size does not exceed the matrix size
         if (matrix.length < dctBlockSize || matrix[0].length < dctBlockSize) {
-            throw new IndexOutOfBoundsException("Your input matrix is too small, it should be bigger than your DCT block size (" + dctBlockSize + ")!");
+            throw new IndexOutOfBoundsException("Your input matrix is too small, "
+                    + "it should be bigger than your DCT block size (" + dctBlockSize + ")!");
         }
 
         this.dctBlockSize = dctBlockSize;
@@ -41,100 +62,6 @@ public class DctCalculator {
         this.totalCoefficients = this.calculateCoefficients(matrix);
         this.totalSparsity = this.calculateMatrixSparsity(this.totalCoefficients);
         this.temporaryCoefficients = new double[]{0, 0};
-    }
-
-    public int getDctBlockSize() {
-        return dctBlockSize;
-    }
-
-    public int[][] getMatrix() {
-        return matrix;
-    }
-
-    public double getTotalSparsity() {
-        return totalSparsity;
-    }
-
-    private double calculateMatrixSparsity(double sumAbsoluteCoefficients, double sumSquaredAbsoluteCoefficients) {
-        return (Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
-    }
-
-    private double calculateMatrixSparsity(double[] coefficients) {
-        return this.calculateMatrixSparsity(coefficients[0], coefficients[1]);
-    }
-
-    public void testEstimatedSparsitySoFar() {
-        double calculatedSparsity;
-        calculatedSparsity = this.calculateMatrixSparsity(this.calculateCoefficients(this.matrix));
-        System.out.println("*** Matrix Sparsity ***");
-        System.out.println("Estimated so far: " + this.totalSparsity);
-        System.out.println("Calculated value: " + calculatedSparsity);
-        System.out.println("Difference: " + Math.abs(this.totalSparsity - calculatedSparsity));
-    }
-
-    public double tryModification(int xCoordinate, int yCoordinate, int newColorValue) {
-        if (xCoordinate > this.matrix.length || yCoordinate > this.matrix[0].length) {
-            throw new ArrayIndexOutOfBoundsException("Your given coordinates (" + xCoordinate + "," + yCoordinate + ") are outside the matrix.");
-        }
-
-        int[][] originalMatrixPart;
-        int[][] modifiedMatrixPart;
-        double[] originalMatrixPartCoefficients;
-        double[] modifiedMatrixPartCoefficients;
-
-        originalMatrixPart = this.getDctPart(xCoordinate, yCoordinate);
-        modifiedMatrixPart = this.getDctPart(xCoordinate, yCoordinate);
-        modifiedMatrixPart[xCoordinate % this.dctBlockSize][yCoordinate % this.dctBlockSize] = newColorValue;
-
-        originalMatrixPartCoefficients = this.calculateCoefficients(originalMatrixPart);
-        modifiedMatrixPartCoefficients = this.calculateCoefficients(modifiedMatrixPart);
-
-//        this.temporaryX = xCoordinate;
-//        this.temporaryY = yCoordinate;
-//        this.temporaryColor = newColorValue;
-        this.temporaryCoefficients[0] = this.totalCoefficients[0] - originalMatrixPartCoefficients[0] + modifiedMatrixPartCoefficients[0];
-        this.temporaryCoefficients[1] = this.totalCoefficients[1] - originalMatrixPartCoefficients[1] + modifiedMatrixPartCoefficients[1];
-        this.temporarySparsity = this.calculateMatrixSparsity(this.temporaryCoefficients);
-
-        return this.temporarySparsity;
-    }
-
-    public void performModification() {
-//        this.matrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
-        this.totalCoefficients[0] = this.temporaryCoefficients[0];
-        this.totalCoefficients[1] = this.temporaryCoefficients[1];
-        this.totalSparsity = this.temporarySparsity;
-    }
-
-    private int[][] getDctPart(int xCoordinate, int yCoordinate) {
-        int xStart;
-        int yStart;
-        int[][] matrixPart;
-        int i;
-        int j;
-
-        xStart = xCoordinate - (xCoordinate % this.dctBlockSize);
-        yStart = yCoordinate - (yCoordinate % this.dctBlockSize);
-
-        matrixPart = new int[this.dctBlockSize][this.dctBlockSize];
-
-        i = 0;
-        j = 0;
-
-        // Loop through the part of the original matrix that must be copied
-        for (int x = xStart; x < (xStart + this.dctBlockSize); x++, i++) {
-            for (int y = yStart; y < (yStart + this.dctBlockSize); y++, j++) {
-                // try to copy the value, if the index is out of bounds, set the value to zero
-                try {
-                    matrixPart[i][j] = this.matrix[x][y];
-                } catch (ArrayIndexOutOfBoundsException aiex) {
-                    matrixPart[i][j] = 0;
-                }
-            }
-            j = 0;
-        }
-
-        return matrixPart;
     }
 
     /**
@@ -151,10 +78,10 @@ public class DctCalculator {
      * As stated in 'Imaging with a small number of photons', by P. A. Morris et
      * al.
      *
-     * @param matrix the input matrix
+     * @param inputMatrix the input matrix
      * @return a measure of the sparsity of the matrix
      */
-    private double[] calculateCoefficients(int[][] inputMatrix) {
+    private double[] calculateCoefficients(final int[][] inputMatrix) {
         double sumAbsoluteCoefficients = 0;
         double sumSquaredAbsoluteCoefficients = 0;
         double[][] dctInputMatrix;
@@ -196,10 +123,146 @@ public class DctCalculator {
             }
         }
 
-        // Square the sum of the absolute coefficients, and divide it by the sum of the squared absolute coefficients.
-        // The outcome of this formula can be used as a measure of sparsity.
+        // Return the sum of the absolute coefficients and the sum of the squared coefficients.
+        // These can be used to calculate a measure of sparsity.
         return new double[]{sumAbsoluteCoefficients, sumSquaredAbsoluteCoefficients};
-        //return (Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
+    }
+
+
+    /**
+     * Calculate the matrix sparsity from the given sum of absolute coefficients and sum of squared coefficients.
+     *
+     * @param sumAbsoluteCoefficients the sum of the absolute coefficients
+     * @param sumSquaredAbsoluteCoefficients the sum of the squared coefficients
+     * @return a measure for the matrix sparsity
+     */
+    private double calculateMatrixSparsity(final double sumAbsoluteCoefficients,
+                                           final double sumSquaredAbsoluteCoefficients) {
+        return (Math.pow(sumAbsoluteCoefficients, 2) / sumSquaredAbsoluteCoefficients);
+    }
+
+    /**
+     * Calculate the matrix sparsity from the given sum of absolute coefficients and sum of squared coefficients.
+     *
+     * @param coefficients contains the sum of the absolute coefficients and the sum of the squared coefficients
+     * @return a measure for the matrix sparsity
+     */
+    private double calculateMatrixSparsity(final double[] coefficients) {
+        return this.calculateMatrixSparsity(coefficients[0], coefficients[1]);
+    }
+
+    /**
+     * This method is used to try out a modification of a pixel, to test what the new matrix sparsity would be.
+     * 
+     * @param xCoordinate the x coordinate in the pixel matrix
+     * @param yCoordinate the y coordinate in the pixel matrix
+     * @param newColorValue the new color value for pixel (x, y)
+     * @return the estimated new sparsity with this modification
+     */
+    public double tryModification(final int xCoordinate, final int yCoordinate, final int newColorValue) {
+        if (xCoordinate > this.matrix.length || yCoordinate > this.matrix[0].length) {
+            throw new ArrayIndexOutOfBoundsException("Your given coordinates ("
+                    + xCoordinate + "," + yCoordinate + ") are outside the matrix.");
+        }
+
+        int[][] originalMatrixPart;
+        int[][] modifiedMatrixPart;
+        double[] originalMatrixPartCoefficients;
+        double[] modifiedMatrixPartCoefficients;
+
+        // Cut out the parts of the total matrix where the modification is actually happening
+        originalMatrixPart = this.getDctPart(xCoordinate, yCoordinate);
+        modifiedMatrixPart = this.getDctPart(xCoordinate, yCoordinate);
+        modifiedMatrixPart[xCoordinate % this.dctBlockSize][yCoordinate % this.dctBlockSize] = newColorValue;
+
+        // Calculate the coefficients for the parts with and without the modification
+        originalMatrixPartCoefficients = this.calculateCoefficients(originalMatrixPart);
+        modifiedMatrixPartCoefficients = this.calculateCoefficients(modifiedMatrixPart);
+
+        // Estimate the new coefficients and sparsity based on the outcomes for the small matrices
+        // save those values.
+        this.temporaryCoefficients[0] = this.totalCoefficients[0]
+                                        - originalMatrixPartCoefficients[0] 
+                                        + modifiedMatrixPartCoefficients[0];
+        this.temporaryCoefficients[1] = this.totalCoefficients[1]
+                                        - originalMatrixPartCoefficients[1] 
+                                        + modifiedMatrixPartCoefficients[1];
+        this.temporarySparsity = this.calculateMatrixSparsity(this.temporaryCoefficients);
+
+        return this.temporarySparsity;
+    }
+
+    /**
+     * Get the part of the matrix around the given coordinates.
+     * When calculating the matrix sparsity, the total matrix is devided into dctBlockSize * dctBlockSize squares.
+     * This method returns the square where the given coordinates belong to.
+     *
+     * @param xCoordinate x coordinate within the dct part
+     * @param yCoordinate y coordinate within the dct part
+     * @return the dct part around the x and y coordinates
+     */
+    private int[][] getDctPart(final int xCoordinate, final int yCoordinate) {
+        int xStart;
+        int yStart;
+        int[][] matrixPart;
+        int i;
+        int j;
+
+        // get the start values of the dct block within the complete matrix
+        xStart = xCoordinate - (xCoordinate % this.dctBlockSize);
+        yStart = yCoordinate - (yCoordinate % this.dctBlockSize);
+
+        matrixPart = new int[this.dctBlockSize][this.dctBlockSize];
+
+        i = 0;
+        j = 0;
+
+        // Loop through the part of the original matrix that must be copied
+        for (int x = xStart; x < (xStart + this.dctBlockSize); x++, i++) {
+            for (int y = yStart; y < (yStart + this.dctBlockSize); y++, j++) {
+                // try to copy the value, if the index is out of bounds, set the value to zero
+                try {
+                    matrixPart[i][j] = this.matrix[x][y];
+                } catch (ArrayIndexOutOfBoundsException aiex) {
+                    matrixPart[i][j] = 0;
+                }
+            }
+            j = 0;
+        }
+
+        return matrixPart;
+    }
+
+    /**
+     * This method will be called if the last tested modification was good enough, and should be saved.
+     * This method updates the variables because the image has been updated.
+     */
+    public void performModification() {
+        this.totalCoefficients[0] = this.temporaryCoefficients[0];
+        this.totalCoefficients[1] = this.temporaryCoefficients[1];
+        this.totalSparsity = this.temporarySparsity;
+    }
+    
+    /**
+     * This method test can be used to check if the matrix sparsity so far has been estimated well.
+     * It calculates the total matrix sparsity of the image, and compares it to the estimated sparsity.
+     */
+    public void testEstimatedSparsitySoFar() {
+        double calculatedSparsity;
+        calculatedSparsity = this.calculateMatrixSparsity(this.calculateCoefficients(this.matrix));
+        System.out.println("*** Matrix Sparsity ***");
+        System.out.println("Estimated so far: " + this.totalSparsity);
+        System.out.println("Calculated value: " + calculatedSparsity);
+        System.out.println("Difference: " + Math.abs(this.totalSparsity - calculatedSparsity));
+    }
+
+    /**
+     * Get the total sparsity calculated so far.
+     * 
+     * @return the total sparsity
+     */
+    public double getTotalSparsity() {
+        return totalSparsity;
     }
 
 }
