@@ -22,8 +22,8 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
-        <module name="PhotonImaging" />
         <module name="photonimaging" />
+        <module name="PhotonImaging" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

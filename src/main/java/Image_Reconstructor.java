@@ -88,7 +88,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     /** The iteration counter keeps track of the amount of modifications that have been tried. */
     private int iterations = 0;
     /** After this many iterations, the scaling value is checked. */
-    private final double iterationsPerCheck = 10000;
+    private final double iterationsPerCheck = 1000;
     /** The scaling value used to adjust random values to create new pixel colors. */
     private double scalingValue;
     /** If the scaling value comes below this cutoff, the plugin will end. */
@@ -273,7 +273,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     private void createOutputImage(final ImageProcessor ip) {
         this.outIp = ip.duplicate();
         this.blurrer.blurGaussian(outIp, this.blurRadius);
-        this.outImp = new ImagePlus("Reconstructed Image", this.outIp);
+        this.outImp = new ImagePlus("Reconstructed Image (reconstructing...)", this.outIp);
         //this.outImp = new ImagePlus("Reconstructed Image |blur:" + this.blurRadius + "|darkcount:" + this.darkCountRate + "|multip:" + this.multiplyColorValue + "|regfact:" + this.regularizationFactor, this.outIp);
         ImageWindow outputWindow = new ImageWindow(this.outImp);
         outputWindow.setVisible(true);
@@ -372,7 +372,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
                 this.scalingValue *= 0.9;
                 //System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time) / this.iterationsPerCheck) + ", " + this.iterations);
                 if (this.scalingValue < this.scalingValueCutoff) {
-                    System.out.println("Done");
+                    this.outImp.getWindow().setTitle("Reconstructed Image (done)");
                     return false;
                 }
             }
