@@ -1,28 +1,53 @@
+/*
+ * Copyright (c) 2016 Lonneke Scheffer and Wout van Helvoirt
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /**
+ * LogLikelihoodCalculator
  *
- * @author wvanhelvoirt
+ * This class can be used to track the log likelihood for an image that is being modified.
+ * The total log likelihood is only calculated once, and when the image is modified, only
+ * the log likelihood for the modified pixel needs to be recalculated. This makes the algorithm
+ * a lot faster than calculating the whole log likelihood again.
+ *
+ * @author Lonneke Scheffer
  */
 public final class LogLikelihoodCalculator {
-    private int[][] originalMatrix;
-    private int[][] modifiedMatrix;
-    private double darkCountRate;
-    private double totalLogLikelihood;
-    private double temporaryLogLikelihood;
-//    private int temporaryX;
-//    private int temporaryY;
-//    private int temporaryColor;
 
+    /** The matrix containing the original pixel values. */
+    private int[][] originalMatrix;
+    /** The matrix containing the pixel values that is being modified. */
+    private int[][] modifiedMatrix;
+    /** The dark count rate per pixel for this camera. */
+    private double darkCountRate;
+    /* The total log likelihood for the image. */
+    private double totalLogLikelihood;
+    /* The temporary log likelihood for the modified image. */
+    private double temporaryLogLikelihood;
+
+    /**
+     * Create a new LogLikelihoodCalculator
+     *
+     * @param inputMatrix the original image pixel values
+     * @param outputMatrix the modified image pixel values
+     * @param darkCountRate the dark count rate for the used camera
+     */
     public LogLikelihoodCalculator(int[][] inputMatrix, int[][] outputMatrix, double darkCountRate) {
-        if (inputMatrix.length == outputMatrix.length && inputMatrix[0].length == outputMatrix[0].length){
+        if (inputMatrix.length == outputMatrix.length && inputMatrix[0].length == outputMatrix[0].length) {
             this.originalMatrix = inputMatrix;
             this.modifiedMatrix = outputMatrix;
         } else {
@@ -31,46 +56,11 @@ public final class LogLikelihoodCalculator {
         this.darkCountRate = darkCountRate;
         this.totalLogLikelihood = this.calculateLogLikelihood(inputMatrix, outputMatrix);
     }
-    
-    
-    public double tryModification(int xCoordinate, int yCoordinate, int newColorValue){
-        if (xCoordinate > this.originalMatrix.length || yCoordinate > this.originalMatrix[0].length){
-            throw new ArrayIndexOutOfBoundsException("Your given coordinates (" + xCoordinate + "," + yCoordinate + ") are outside the matrix.");
-        }         
-        
-//        this.temporaryX = xCoordinate;
-//        this.temporaryY = yCoordinate;
-//        this.temporaryColor = newColorValue;
-        this.temporaryLogLikelihood =  this.totalLogLikelihood 
-                - this.calculateLogLikelihood(this.originalMatrix[xCoordinate][yCoordinate], this.modifiedMatrix[xCoordinate][yCoordinate]) 
-                + this.calculateLogLikelihood(this.originalMatrix[xCoordinate][yCoordinate], newColorValue);
-        
-        return this.temporaryLogLikelihood;
-    }
 
-    public double getTotalLogLikelihood() {
-        return totalLogLikelihood;
-    }
-    
-    public void performModification(){
-//        this.modifiedMatrix[this.temporaryX][this.temporaryY] = this.temporaryColor;
-        this.totalLogLikelihood = this.temporaryLogLikelihood;
-    }
-    
-    
-    
-    public void testEstimatedLogLikelihoodSoFar(){
-        double calculatedLogLikelihood;
-        calculatedLogLikelihood = this.calculateLogLikelihood(this.originalMatrix, this.modifiedMatrix);
-        System.out.println("*** Log Likelihood ***");
-        System.out.println("Estimated so far: " + this.totalLogLikelihood);
-        System.out.println("Calculated value: " + calculatedLogLikelihood);
-        System.out.println("Difference: " + Math.abs(this.totalLogLikelihood - calculatedLogLikelihood));
-    }
-    
     /**
-     * Calculates the log likelihood for the modified matrix given the original matrix.
-     * As stated in 'Imaging with a small number of photons', by P. A. Morris et al.
+     * Calculates the log likelihood for the modified matrix given the original
+     * matrix. As stated in 'Imaging with a small number of photons', by P. A.
+     * Morris et al.
      *
      * @param originalMatrix part of the original image
      * @param modifiedMatrix part of the modified image
@@ -94,11 +84,73 @@ public final class LogLikelihoodCalculator {
 
         return logLikelihood;
     }
-    
-    private double calculateLogLikelihood(final int originalPixelValue, final int modifiedPixelValue){
+
+    /**
+     * Calculates the log likelihood for a pixel,
+     * given the original pixel color value and the modified pixel color value.
+     *
+     * @param originalPixelValue the original color value
+     * @param modifiedPixelValue the new color value
+     * @return the log likelihood for this pixel
+     */
+    private double calculateLogLikelihood(final int originalPixelValue, final int modifiedPixelValue) {
         return ((originalPixelValue * Math.log(modifiedPixelValue + this.darkCountRate))
-                        - (modifiedPixelValue + this.darkCountRate)
-                        - CombinatoricsUtils.factorialLog(originalPixelValue));
+                - (modifiedPixelValue + this.darkCountRate)
+                - CombinatoricsUtils.factorialLog(originalPixelValue));
+    }
+
+    /**
+     * This method is used to try out a modification of a pixel, to test what the log likelihood would be.
+     *
+     * @param xCoordinate the x coordinate in the pixel matrix
+     * @param yCoordinate the y coordinate in the pixel matrix
+     * @param newColorValue the new color value for pixel (x, y)
+     * @return the estimated new log likelihood with this modification
+     */
+    public double tryModification(int xCoordinate, int yCoordinate, int newColorValue) {
+        if (xCoordinate > this.originalMatrix.length || yCoordinate > this.originalMatrix[0].length) {
+            throw new ArrayIndexOutOfBoundsException("Your given coordinates (" + xCoordinate + "," + yCoordinate + ") are outside the matrix.");
+        }
+
+        // calculate the new log likelihood:
+        // total log likelihood - log likelihood of unmodified pixel + log likelihood of modified pixel
+        this.temporaryLogLikelihood = this.totalLogLikelihood
+                - this.calculateLogLikelihood(this.originalMatrix[xCoordinate][yCoordinate],
+                                              this.modifiedMatrix[xCoordinate][yCoordinate])
+                + this.calculateLogLikelihood(this.originalMatrix[xCoordinate][yCoordinate],
+                                              newColorValue);
+
+        return this.temporaryLogLikelihood;
+    }
+
+    /**
+     * This method will be called if the last tested modification was good enough, and should be saved.
+     * This method updates the log likelihood because the image has been updated.
+     */
+    public void performModification() {
+        this.totalLogLikelihood = this.temporaryLogLikelihood;
+    }
+
+     /**
+     * This method test can be used to check if the log likelihood so far has been estimated well.
+     * It calculates the total log likelihood of the image, and compares it to the estimated log likelihood.
+     */
+    public void testEstimatedLogLikelihoodSoFar() {
+        double calculatedLogLikelihood;
+        calculatedLogLikelihood = this.calculateLogLikelihood(this.originalMatrix, this.modifiedMatrix);
+        System.out.println("*** Log Likelihood ***");
+        System.out.println("Estimated so far: " + this.totalLogLikelihood);
+        System.out.println("Calculated value: " + calculatedLogLikelihood);
+        System.out.println("Difference: " + Math.abs(this.totalLogLikelihood - calculatedLogLikelihood));
+    }
+
+    /**
+     * Get the total log likelihood calculated so far.
+     *
+     * @return the total log likelihood
+     */
+    public double getTotalLogLikelihood() {
+        return totalLogLikelihood;
     }
 
 }

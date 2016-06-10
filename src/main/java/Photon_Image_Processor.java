@@ -41,11 +41,14 @@ import java.util.List;
 /**
  * Photon_Image_Processor
  *
- * This class is able to process a stack containing single photon events data and create a combined hi-res image.
- * Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon
- * has a center that can be calculated in a fast or a more accurate way. There are two accurate calculations available.
- * One to create a higher resolution image with four times the amount of pixels (sub-pixel resolution) or one with
- * normal resolution. Photons are being counted and mapped to the correct pixel values to create a 16-bit image.
+ * This class is able to process a stack containing single photon events data
+ * and create a combined hi-res image. Each light point within the image (based
+ * on user given tolerance value) is being processed as photon. Each photon has
+ * a center that can be calculated in a fast or a more accurate way. There are
+ * two accurate calculations available. One to create a higher resolution image
+ * with four times the amount of pixels (sub-pixel resolution) or one with
+ * normal resolution. Photons are being counted and mapped to the correct pixel
+ * values to create a 16-bit image.
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
@@ -57,7 +60,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     private int[][] photonCountMatrix;
     /** The 'silent' version of MaximumFinder, used to find photons. */
     private SilentMaximumFinder maxFind;
-    /** The ProgressBar. */
+    /*** The ProgressBar. */
     private ProgressBar pb;
     /** This boolean tells whether the 'previewing' window is open. */
     private boolean previewing = false;
@@ -81,12 +84,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
             | PlugInFilter.STACK_REQUIRED
             | PlugInFilter.FINAL_PROCESSING;
 
-
     /**
      * Setup method as initializer.
      *
-     * Setup method is the initializer for this class and will always be run first. Arguments can be given
-     * here. Setup method needs to be overridden.
+     * Setup method is the initializer for this class and will always be run
+     * first. Arguments can be given here. Setup method needs to be overridden.
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
@@ -117,9 +119,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * The showDialog method will be run after the setup and creates the dialog window and shows it.
+     * The showDialog method will be run after the setup and creates the dialog
+     * window and shows it.
      *
-     * Dialog window has support for noise tolerance value, preprocessing step and live preview (run is executed once).
+     * Dialog window has support for noise tolerance value, preprocessing step
+     * and live preview (run is executed once).
      *
      * @param imp The ImagePlus.
      * @param command String containing the command.
@@ -196,8 +200,9 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
-     * This method does most of the work, calls all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects
+     * this class via plug-ins in Fiji. This method does most of the work, calls
+     * all other methods in the right order.
      *
      * @param ip image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
@@ -223,15 +228,10 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
             this.runPreview(rawCoordinates);
         } else if (this.method.equals("Fast")) {
             this.processPhotonsFast(rawCoordinates);
-        } else {
-            // Calculating the auto threshold takes relatively long so this function is only called once per image.
-            //float autoThreshold = ip.getAutoThreshold();
-
-            if (this.method.equals("Accurate")) {
-                processPhotonsAccurate(ip, rawCoordinates);
-            } else { // this.method equals "Subpixel resolution"
-                processPhotonsSubPixel(ip, rawCoordinates);
-            }
+        } else if (this.method.equals("Accurate")) {
+            processPhotonsAccurate(ip, rawCoordinates);
+        } else { // this.method equals "Subpixel resolution"
+            processPhotonsSubPixel(ip, rawCoordinates);
         }
 
         // Update the progressbar.
@@ -239,9 +239,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method is called while previewing, it shows the found coordinates with the current settings.
+     * This method is called while previewing, it shows the found coordinates
+     * with the current settings.
      *
-     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     * @param rawCoordinates a polygon containing the coordinates as found by
+     * MaximumFinder
      */
     private void runPreview(final Polygon rawCoordinates) {
         // Save the coordinates in a ROI, set the ROI and change the messagearea.
@@ -254,56 +256,58 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      * This method is called when processing photons using the 'fast' method.
      * All photons are added to the photon count matrix, without altering.
      *
-     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     * @param rawCoordinates a polygon containing the coordinates as found by
+     * MaximumFinder
      */
     private void processPhotonsFast(final Polygon rawCoordinates) {
         // Loop through all raw coordinates and add them to the count matrix.
         for (int i = 0; i < rawCoordinates.npoints; i++) {
-            this.photonCountMatrix[rawCoordinates.xpoints[i]]
-                                  [rawCoordinates.ypoints[i]]++;
+            this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
         }
     }
 
     /**
-     * This method is called when processing photons using the 'accurate' method.
-     * The exact coordinates are calculated, and then floored and added to the count matrix.
+     * This method is called when processing photons using the 'accurate'
+     * method. The exact coordinates are calculated, and then floored and added
+     * to the count matrix.
      *
      * @param ip the ImageProcessor of the current image slice
-     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     * @param rawCoordinates a polygon containing the coordinates as found by
+     * MaximumFinder
      */
     private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // floor the coordinates, and add them to the count matrix.
             double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i],
-                                                                       rawCoordinates.ypoints[i], ip);
-            this.photonCountMatrix[(int) exactCoordinates[0]]
-                                  [(int) exactCoordinates[1]]++;
+                    rawCoordinates.ypoints[i], ip);
+            this.photonCountMatrix[(int) exactCoordinates[0]][(int) exactCoordinates[1]]++;
         }
     }
 
     /**
-     * This method is called when processing photons using the 'subpixel resolution' method.
-     * The exact coordinates are calculated, and then multiplied by two and added to the count matrix.
+     * This method is called when processing photons using the 'subpixel
+     * resolution' method. The exact coordinates are calculated, and then
+     * multiplied by two and added to the count matrix.
      *
      * @param ip the ImageProcessor of the current image slice
-     * @param rawCoordinates a polygon containing the coordinates as found by MaximumFinder
+     * @param rawCoordinates a polygon containing the coordinates as found by
+     * MaximumFinder
      */
     private void processPhotonsSubPixel(final ImageProcessor ip, final Polygon rawCoordinates) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             // Loop through all raw coordinates, calculate the exact coordinates,
             // double the coordinates, and add them to the count matrix.
             double[] exactCoordinates = this.calculateExactCoordinates(rawCoordinates.xpoints[i],
-                                                                       rawCoordinates.ypoints[i],
-                                                                       ip);
-            this.photonCountMatrix[(int) (exactCoordinates[0] * 2)]
-                                  [(int) (exactCoordinates[1] * 2)]++;
+                    rawCoordinates.ypoints[i],
+                    ip);
+            this.photonCountMatrix[(int) (exactCoordinates[0] * 2)][(int) (exactCoordinates[1] * 2)]++;
         }
     }
 
-
     /**
-     * Preprocess the images. For instance: despeckling the images to prevent false positives.
+     * Preprocess the images. For instance: despeckling the images to prevent
+     * false positives.
      *
      * @param ip Image processor.
      */
@@ -314,7 +318,8 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Find the photons in the current image using MaximumFinder, and return their approximate coordinates.
+     * Find the photons in the current image using MaximumFinder, and return
+     * their approximate coordinates.
      *
      * @param ip Image processor.
      * @return Polygon with all maxima points found.
@@ -333,7 +338,8 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Calculate the exact sub-pixel positions of the photon events at the given coordinates.
+     * Calculate the exact sub-pixel positions of the photon events at the given
+     * coordinates.
      *
      * @param xCor Original x coordinate as found by MaximumFinder.
      * @param yCor Original y coordinate as found by MaximumFinder.
@@ -346,7 +352,6 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
         double[] subPixelCoordinates = new double[2];
 
         // Outline the center of the photon using the wand tool.
-        //wd.autoOutline(xCor, yCor, autoThreshold, Wand.FOUR_CONNECTED);
         wd.autoOutline(xCor, yCor, this.tolerance, Wand.FOUR_CONNECTED);
 
         // Draw a rectangle around the outline.
@@ -369,7 +374,8 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method generates and displays the final image from the photonCountMatrix.
+     * This method generates and displays the final image from the
+     * photonCountMatrix.
      */
     private void createOutputImage() {
 
@@ -407,29 +413,31 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      */
     public void showAbout() {
         IJ.showMessage("About Process Photon Images", "<html>"
-            + "<b>This option is able to process a stack containing single photon events data and create a combined "
-            + "high resolution image.</b><br>"
-            + "Each light point within the image (based on user given tolerance value) is being processed as photon. "
-            + "Each photon has a center that can be calculated in a fast or a more accurate way.<br><br>"
-            + "The available calculations modes are:<br>"
-            + "<ul>"
-            + "<li><b>Fast</b> uses the lightest points found as coordinates for the output image."
-            + "<li><b>Accurate</b> improves on fast by calculating the exact center from the light points before "
-            + "creating an output image."
-            + "<li><b>Sub-pixel resolution</b> uses the accurate method but outputs a higher resolution image with "
-            + "four times the amount of pixels. This requires a larger amount of images than the other methods."
-            + "</ul>"
-            + "Photons are being counted and mapped to the correct pixel values to create a 16-bit output image. The "
-            + "output image may be used for the option 'Threshold Photon Count' to remove noise.<br><br>"
-            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
+                + "<h1>Process Photon Images</h1>"
+                + "<b>This option can be used to process a stack of single photon data (images containing single"
+                + "photon events), and create one high resolution output image.</b> This output image might optionally"
+                + "be improved by 'Threshold Photon Count' and/or 'Image Reconstructor'."
+                + "<h2>Methods</h2>"
+                + "There are 3 different methods to choose from to calculate the coordinates of the exact midpoints "
+                + "of the light blobs in the images."
+                + "<ul>"
+                + "<li><b>Fast</b>: uses the lightest pixels found as coordinates for the output image."
+                + "<li><b>Accurate</b>: also checks the pixels surrounding the lightest pixel to calculate a more"
+                + "accurate midpoint."
+                + "<li><b>Sub-pixel resolution</b> uses the accurate method to calculate the midpoints but creates "
+                + "an output image of a higher resolution (heigth * 2 and width * 2). This requires more input images "
+                + "and bigger lightblobs in those input images to work succesfully."
+                + "</ul><br><br>"
+                + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     * For debugging, it is convenient to have a method that starts ImageJ,
+     * loads an image and calls the plug-in, e.g. after setting breakpoints.
+     * Main method will get executed when running this file from IDE.
      *
      * @param args unused.
      */
@@ -442,13 +450,6 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
 
         // start ImageJ
         new ImageJ();
-
-        // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/900Vdark");
-        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
-        ImagePlus image = IJ.getImage();
 
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");

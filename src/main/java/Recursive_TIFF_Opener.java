@@ -30,9 +30,10 @@ import java.nio.file.Paths;
 /**
  * Recursive_TIFF_Opener
  *
- * This class can be used to open all TIFF files in a directory as virtual stack.
- * Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual
- * stack can be used as input for the 'Process Photon Images' option.
+ * This class can be used to open all TIFF files in a directory as virtual
+ * stack. Each sub-directory in the user selected directory will be searched for
+ * any containing TIFF files. The opened virtual stack can be used as input for
+ * the 'Process Photon Images' option.
  *
  * @author Lonneke Scheffer and Wout van Helvoirt
  */
@@ -48,8 +49,9 @@ public final class Recursive_TIFF_Opener implements PlugIn {
     private int winWidth = 0;
 
     /**
-     * Run method gets executed when setup is finished and when the user selects this class via plug-ins in Fiji.
-     * This method does most of the work, calls all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects
+     * this class via plug-ins in Fiji. This method does most of the work, calls
+     * all other methods in the right order.
      *
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
@@ -73,7 +75,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
 
             // Search directory.
             searchDirectory(this.dir);
-            
+
             // Make new ImagePlus from VirtualStack with chosen directory as name.
             ImagePlus imp = new ImagePlus(this.dir, this.vis);
 
@@ -89,8 +91,9 @@ public final class Recursive_TIFF_Opener implements PlugIn {
     /**
      * This method searches the user given directory for each Tiff file.
      *
-     * When the first file has been found, setVirtualStack is called. For each directory found, searchDirectory is
-     * called un till all files are found. Each File is added to the VirtualStack.
+     * When the first file has been found, setVirtualStack is called. For each
+     * directory found, searchDirectory is called un till all files are found.
+     * Each File is added to the VirtualStack.
      *
      * @param dir File with user selected directory path.
      * @throws java.io.IOException
@@ -111,7 +114,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
             if (this.vis != null) {
                 this.vis.addSlice(filePath.toString().replace(this.dir, ""));
 
-            // If VirtualStack not yet set, set it (Only the first found TIFF file go's in here) and add TIFF file.
+                // If VirtualStack not yet set, set it (Only the first found TIFF file go's in here) and add TIFF file.
             } else if (this.vis == null) {
                 setVirtualStack(filePath);
                 this.vis.addSlice(filePath.toString().replace(this.dir, ""));
@@ -142,18 +145,20 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      */
     public void showAbout() {
         IJ.showMessage("About Open TIFF Files", "<html>"
-            + "<b>This option can be used to open all TIFF files in a directory as virtual stack.</b><br>"
-            + "Each sub-directory in the user selected directory will be searched for any containing TIFF files. The "
-            + "opened virtual stack can be used as input for the 'Process Photon Images' option.<br><br>"
-            + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
+                + "<h1>Open TIFF Files</h1>"
+                + "<b>This option can be used to open all TIFF files in a directory, and the directories below, "
+                + "as virtual stack.</b> The opened virtual stack can be used as input for 'Process Photon Images'."
+                + "<br><br>"
+                + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );
     }
 
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ, loads an image and calls the plug-in, e.g.
-     * after setting breakpoints. Main method will get executed when running this file from IDE.
+     * For debugging, it is convenient to have a method that starts ImageJ,
+     * loads an image and calls the plug-in, e.g. after setting breakpoints.
+     * Main method will get executed when running this file from IDE.
      *
      * @param args unused
      */
@@ -166,13 +171,6 @@ public final class Recursive_TIFF_Opener implements PlugIn {
 
         // start ImageJ
         new ImageJ();
-
-        // Open the image sequence
-        // IJ.run("Image Sequence...", "open=/commons/student/2015-2016/Thema11/Thema11_LScheffer_WvanHelvoirt/kleinbeetjedata");
-        // IJ.run("Image Sequence...", "open=/home/lonneke/imagephotondata");
-        // IJ.run("Image Sequence...", "open=/Volumes/Bioinf/SinglePhotonData");
-        // IJ.run("Image Sequence...", "open=/Users/Wout/Desktop/100100");
-        ImagePlus image = IJ.getImage();
 
         // Only if you use new ImagePlus(path) to open the file
         // image.show();
