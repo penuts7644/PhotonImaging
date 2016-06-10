@@ -24,7 +24,7 @@ import org.apache.commons.math3.util.CombinatoricsUtils;
  * the log likelihood for the modified pixel needs to be recalculated. This makes the algorithm
  * a lot faster than calculating the whole log likelihood again.
  *
- * @author Lonneke Scheffer
+ * @author Lonneke Scheffer and Wout van Helvoirt
  */
 public final class LogLikelihoodCalculator {
 
@@ -34,17 +34,17 @@ public final class LogLikelihoodCalculator {
     private int[][] modifiedMatrix;
     /** The dark count rate per pixel for this camera. */
     private double darkCountRate;
-    /* The total log likelihood for the image. */
+    /** The total log likelihood for the image. */
     private double totalLogLikelihood;
-    /* The temporary log likelihood for the modified image. */
+    /** The temporary log likelihood for the modified image. */
     private double temporaryLogLikelihood;
 
     /**
-     * Create a new LogLikelihoodCalculator
+     * Create a new LogLikelihoodCalculator.
      *
-     * @param inputMatrix the original image pixel values
-     * @param outputMatrix the modified image pixel values
-     * @param darkCountRate the dark count rate for the used camera
+     * @param inputMatrix   The original image pixel values.
+     * @param outputMatrix  The modified image pixel values.
+     * @param darkCountRate The dark count rate for the used camera.
      */
     public LogLikelihoodCalculator(int[][] inputMatrix, int[][] outputMatrix, double darkCountRate) {
         if (inputMatrix.length == outputMatrix.length && inputMatrix[0].length == outputMatrix[0].length) {
@@ -62,9 +62,9 @@ public final class LogLikelihoodCalculator {
      * matrix. As stated in 'Imaging with a small number of photons', by P. A.
      * Morris et al.
      *
-     * @param originalMatrix part of the original image
-     * @param modifiedMatrix part of the modified image
-     * @return the log likelihood
+     * @param originalMatrix Part of the original image.
+     * @param modifiedMatrix Part of the modified image.
+     * @return double The log likelihood.
      */
     private double calculateLogLikelihood(final int[][] originalMatrix, final int[][] modifiedMatrix) {
         double logLikelihood = 0;
@@ -89,9 +89,9 @@ public final class LogLikelihoodCalculator {
      * Calculates the log likelihood for a pixel,
      * given the original pixel color value and the modified pixel color value.
      *
-     * @param originalPixelValue the original color value
-     * @param modifiedPixelValue the new color value
-     * @return the log likelihood for this pixel
+     * @param originalPixelValue The original color value.
+     * @param modifiedPixelValue The new color value.
+     * @return double The log likelihood for this pixel.
      */
     private double calculateLogLikelihood(final int originalPixelValue, final int modifiedPixelValue) {
         return ((originalPixelValue * Math.log(modifiedPixelValue + this.darkCountRate))
@@ -102,10 +102,10 @@ public final class LogLikelihoodCalculator {
     /**
      * This method is used to try out a modification of a pixel, to test what the log likelihood would be.
      *
-     * @param xCoordinate the x coordinate in the pixel matrix
-     * @param yCoordinate the y coordinate in the pixel matrix
-     * @param newColorValue the new color value for pixel (x, y)
-     * @return the estimated new log likelihood with this modification
+     * @param xCoordinate   The x coordinate in the pixel matrix.
+     * @param yCoordinate   The y coordinate in the pixel matrix.
+     * @param newColorValue The new color value for pixel (x, y).
+     * @return double The estimated new log likelihood with this modification.
      */
     public double tryModification(int xCoordinate, int yCoordinate, int newColorValue) {
         if (xCoordinate > this.originalMatrix.length || yCoordinate > this.originalMatrix[0].length) {
@@ -147,7 +147,7 @@ public final class LogLikelihoodCalculator {
     /**
      * Get the total log likelihood calculated so far.
      *
-     * @return the total log likelihood
+     * @return double The total log likelihood.
      */
     public double getTotalLogLikelihood() {
         return totalLogLikelihood;

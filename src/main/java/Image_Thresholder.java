@@ -62,7 +62,7 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
-     * @return flag 'DONE' if help shown, else the general plug in flags
+     * @return int Flag 'DONE' if help shown, else the general plug in flags
      */
     @Override
     public int setup(final String arg, final ImagePlus imp) {
@@ -95,10 +95,10 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      * Dialog window has support for noise tolerance value, preprocessing step
      * and live preview (run is executed once).
      *
-     * @param imp The ImagePlus.
+     * @param imp     The ImagePlus.
      * @param command String containing the command.
-     * @param pfr The PlugInFilterRunner necessary for live preview.
-     * @return integer for cancel or oke.
+     * @param pfr     The PlugInFilterRunner necessary for live preview.
+     * @return int For cancel or oke.
      */
     @Override
     public int showDialog(final ImagePlus imp, final String command, final PlugInFilterRunner pfr) {
@@ -130,8 +130,8 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      * saves the new values.
      *
      * @param gd The dialog window.
-     * @param e An AWTEvent.
-     * @return boolean false if one or more field are not correct.
+     * @param e  An AWTEvent.
+     * @return boolean False if one or more field are not correct.
      */
     @Override
     public boolean dialogItemChanged(final GenericDialog gd, final AWTEvent e) {
@@ -150,7 +150,7 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     /**
      * This method tells the the runner the amount of runs get executed.
      *
-     * @param nPasses integer with the amount of runs to be called.
+     * @param nPasses Integer with the amount of runs to be called.
      */
     @Override
     public void setNPasses(final int nPasses) {
@@ -160,7 +160,6 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     /**
      * This method creates a set of pixel values (excluding zero) that are in
      * the pixel value matrix.
-     *
      */
     private void getUniquePixelValues() {
         SortedSet pixelValueSet = new TreeSet();
@@ -183,7 +182,7 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      * this class via plug-ins in Fiji. This method does most of the work, calls
      * all other methods in the right order.
      *
-     * @param ip image processor
+     * @param ip Image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -206,9 +205,9 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
      * This method gets the current pixel value and sets it to the current pixel
      * value minus the threshold value.
      *
-     * @param xCor X position of the pixel.
-     * @param yCor Y position of the pixel.
-     * @param ip Image processor.
+     * @param xCor           X position of the pixel.
+     * @param yCor           Y position of the pixel.
+     * @param ip             Image processor.
      * @param thresholdValue Threshold value selected by user.
      */
     private void setPixelValue(final int xCor, final int yCor, final ImageProcessor ip, final int thresholdValue) {

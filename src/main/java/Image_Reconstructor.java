@@ -109,7 +109,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
-     * @return flag 'DONE' if help shown, else the general plug in flags
+     * @return int Flag 'DONE' if help shown, else the general plug in flags.
      */
     @Override
     public int setup(final String arg, final ImagePlus imp) {
@@ -134,10 +134,10 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * Dialog window has support for dark count rate and regularzation factor.
      * There is no preview possible.
      *
-     * @param imp The ImagePlus.
+     * @param imp     The ImagePlus.
      * @param command String containing the command.
-     * @param pfr The PlugInFilterRunner necessary for live preview.
-     * @return integer for cancel or oke.
+     * @param pfr     The PlugInFilterRunner necessary for live preview.
+     * @return int For cancel or oke.
      */
     @Override
     public int showDialog(final ImagePlus imp, final String command, final PlugInFilterRunner pfr) {
@@ -173,7 +173,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * saves the new values.
      *
      * @param gd The dialog window.
-     * @param e An AWTEvent.
+     * @param e  An AWTEvent.
      * @return boolean false if one or more field are not correct.
      */
     @Override
@@ -214,7 +214,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * this class via plug-ins in Fiji. This method does most of the work, calls
      * all other methods in the right order.
      *
-     * @param originalIp image processor
+     * @param originalIp Image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -268,7 +268,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     /**
      * Creates an output image (opened in a new window) of an image processor.
      *
-     * @param ip the image processor
+     * @param ip The image processor
      */
     private void createOutputImage(final ImageProcessor ip) {
         this.outIp = ip.duplicate();
@@ -282,8 +282,8 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
     /**
      * This method is used to get the maximum value from an integer matrix.
      *
-     * @param pixelMatrix the input matrix containing pixel values
-     * @return the maximum value in the matrix
+     * @param pixelMatrix The input matrix containing pixel values
+     * @return int The maximum value in the matrix
      */
     private int getMaximumValue(final int[][] pixelMatrix) {
         int maxValue = (int) Double.NEGATIVE_INFINITY;
@@ -301,7 +301,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * Calculates the merit value, as defined by the original algorithm of Morris et al.
      * This calculates the merit value of the total image, without precalculated information.
      *
-     * @return the calculated merit value
+     * @return double The calculated merit value
      */
     private double calculateMerit() {
         return this.logLikeCalc.getTotalLogLikelihood()
@@ -315,7 +315,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * have already been calculated for the whole image. Thus these values only have to be calculated
      * for the modified pixel.
      *
-     * @return the merit value of the modified image
+     * @return double The merit value of the modified image
      */
     private double calculateMeritWithModification() {
         return this.logLikeCalc.tryModification(this.randomX, this.randomY, this.randomColorValue)
@@ -357,7 +357,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * The scaling value is used to change the color of a randomly selected pixel.
      * This way, the image is changed a lot at first, and less later on.
      *
-     * @return boolean telling whether the loop should continue
+     * @return boolean Telling whether the loop should continue.
      */
     private boolean testContinueLoop() {
         //System.out.println((this.outIp.getWidth() * this.outIp.getHeight() / 10) + "");
@@ -397,7 +397,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
                 + "of the new image, and the sparsity of the new image. If there are very few possible modifications "
                 + "left that could improve the image, the method for changing random pixels is altered, so the "
                 + "modifications become less extreme and the image is finetuned.<br><br>"
-                + "<h2>Parameter explaination and usage</h2>"
+                + "<h2>Parameter explanation and usage</h2>"
                 + "<ul>"
                 + "<li><b>Dark count rate</b>: The dark count rate per pixel of the camera used to record the data.<br>"
                 + "<li><b>Regularization factor</b>: indicates how important the log likelihood and image sparsity are "

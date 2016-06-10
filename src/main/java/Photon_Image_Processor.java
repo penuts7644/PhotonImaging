@@ -87,12 +87,12 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     /**
      * Setup method as initializer.
      *
-     * Setup method is the initializer for this class and will always be run
-     * first. Arguments can be given here. Setup method needs to be overridden.
+     * Setup method is the initializer for this class and will always be run first. Arguments can be given here.
+     * Setup method needs to be overridden.
      *
      * @param arg String telling setup what to do.
      * @param imp ImagePlus containing the displayed stack/image.
-     * @return flag 'DONE' if help shown, else the general plug in flags
+     * @return int Flag 'DONE' if help shown, else the general plug in flags
      */
     @Override
     public int setup(final String arg, final ImagePlus imp) {
@@ -119,15 +119,14 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * The showDialog method will be run after the setup and creates the dialog
-     * window and shows it.
+     * The showDialog method will be run after the setup and creates the dialog window and shows it.
      *
-     * Dialog window has support for noise tolerance value, preprocessing step
-     * and live preview (run is executed once).
+     * Dialog window has support for noise tolerance value, preprocessing step and live preview
+     * (run is executed once).
      *
-     * @param imp The ImagePlus.
+     * @param imp     The ImagePlus.
      * @param command String containing the command.
-     * @param pfr The PlugInFilterRunner necessary for live preview.
+     * @param pfr     The PlugInFilterRunner necessary for live preview.
      * @return integer for cancel or oke.
      */
     @Override
@@ -170,7 +169,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      * This method changes the preview if user has entered a new value.
      *
      * @param gd The dialog window.
-     * @param e An AWTEvent.
+     * @param e  An AWTEvent.
      * @return boolean false if one or more field are not correct.
      */
     @Override
@@ -192,7 +191,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     /**
      * This method tells the the runner the amount of runs get executed.
      *
-     * @param nPasses integer with the amount of runs to be called.
+     * @param nPasses Integer with the amount of runs to be called.
      */
     @Override
     public void setNPasses(final int nPasses) {
@@ -200,11 +199,10 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Run method gets executed when setup is finished and when the user selects
-     * this class via plug-ins in Fiji. This method does most of the work, calls
-     * all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins
+     * in Fiji. This method does most of the work, calls all other methods in the right order.
      *
-     * @param ip image processor
+     * @param ip Image processor
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -239,11 +237,9 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method is called while previewing, it shows the found coordinates
-     * with the current settings.
+     * This method is called while previewing, it shows the found coordinates with the current settings.
      *
-     * @param rawCoordinates a polygon containing the coordinates as found by
-     * MaximumFinder
+     * @param rawCoordinates A polygon containing the coordinates as found by MaximumFinder.
      */
     private void runPreview(final Polygon rawCoordinates) {
         // Save the coordinates in a ROI, set the ROI and change the messagearea.
@@ -256,8 +252,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      * This method is called when processing photons using the 'fast' method.
      * All photons are added to the photon count matrix, without altering.
      *
-     * @param rawCoordinates a polygon containing the coordinates as found by
-     * MaximumFinder
+     * @param rawCoordinates A polygon containing the coordinates as found by MaximumFinder.
      */
     private void processPhotonsFast(final Polygon rawCoordinates) {
         // Loop through all raw coordinates and add them to the count matrix.
@@ -267,13 +262,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method is called when processing photons using the 'accurate'
-     * method. The exact coordinates are calculated, and then floored and added
-     * to the count matrix.
+     * This method is called when processing photons using the 'accurate' method. The exact
+     * coordinates are calculated, and then floored and added to the count matrix.
      *
-     * @param ip the ImageProcessor of the current image slice
-     * @param rawCoordinates a polygon containing the coordinates as found by
-     * MaximumFinder
+     * @param ip             The ImageProcessor of the current image slice.
+     * @param rawCoordinates A polygon containing the coordinates as found by MaximumFinder.
      */
     private void processPhotonsAccurate(final ImageProcessor ip, final Polygon rawCoordinates) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
@@ -286,13 +279,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method is called when processing photons using the 'subpixel
-     * resolution' method. The exact coordinates are calculated, and then
-     * multiplied by two and added to the count matrix.
+     * This method is called when processing photons using the 'subpixel resolution' method.
+     * The exact coordinates are calculated, and then multiplied by two and added to the count matrix.
      *
-     * @param ip the ImageProcessor of the current image slice
-     * @param rawCoordinates a polygon containing the coordinates as found by
-     * MaximumFinder
+     * @param ip             The ImageProcessor of the current image slice.
+     * @param rawCoordinates A polygon containing the coordinates as found by MaximumFinder.
      */
     private void processPhotonsSubPixel(final ImageProcessor ip, final Polygon rawCoordinates) {
         for (int i = 0; i < rawCoordinates.npoints; i++) {
@@ -306,8 +297,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Preprocess the images. For instance: despeckling the images to prevent
-     * false positives.
+     * Preprocess the images. For instance: despeckling the images to prevent false positives.
      *
      * @param ip Image processor.
      */
@@ -318,8 +308,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Find the photons in the current image using MaximumFinder, and return
-     * their approximate coordinates.
+     * Find the photons in the current image using MaximumFinder, and return their approximate coordinates.
      *
      * @param ip Image processor.
      * @return Polygon with all maxima points found.
@@ -338,12 +327,11 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * Calculate the exact sub-pixel positions of the photon events at the given
-     * coordinates.
+     * Calculate the exact sub-pixel positions of the photon events at the given coordinates.
      *
      * @param xCor Original x coordinate as found by MaximumFinder.
      * @param yCor Original y coordinate as found by MaximumFinder.
-     * @param ip Image processor.
+     * @param ip   Image processor.
      * @return The new calculated coordinates.
      */
     private double[] calculateExactCoordinates(final int xCor, final int yCor, final ImageProcessor ip) {
@@ -374,8 +362,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method generates and displays the final image from the
-     * photonCountMatrix.
+     * This method generates and displays the final image from the photonCountMatrix.
      */
     private void createOutputImage() {
 
@@ -415,18 +402,18 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
         IJ.showMessage("About Process Photon Images", "<html>"
                 + "<h1>Process Photon Images</h1>"
                 + "<b>This option can be used to process a stack of single photon data (images containing single"
-                + "photon events), and create one high resolution output image.</b> This output image might optionally"
+                + "photon events), and create one high resolution output image.</b> This output image might optionally "
                 + "be improved by 'Threshold Photon Count' and/or 'Image Reconstructor'."
                 + "<h2>Methods</h2>"
                 + "There are 3 different methods to choose from to calculate the coordinates of the exact midpoints "
                 + "of the light blobs in the images."
                 + "<ul>"
                 + "<li><b>Fast</b>: uses the lightest pixels found as coordinates for the output image."
-                + "<li><b>Accurate</b>: also checks the pixels surrounding the lightest pixel to calculate a more"
-                + "accurate midpoint."
+                + "<li><b>Accurate</b>: improves on fast by also checking the pixels surrounding the lightest pixel "
+                + "to calculate a more accurate midpoint."
                 + "<li><b>Sub-pixel resolution</b> uses the accurate method to calculate the midpoints but creates "
-                + "an output image of a higher resolution (heigth * 2 and width * 2). This requires more input images "
-                + "and bigger lightblobs in those input images to work succesfully."
+                + "an output image of a higher resolution (height * 2 and width * 2). This requires more input images "
+                + "and bigger lightblobs in those input images to work successfully."
                 + "</ul><br><br>"
                 + "<font size=-2>Created by Lonneke Scheffer and Wout van Helvoirt."
         );

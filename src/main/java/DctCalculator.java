@@ -23,7 +23,7 @@
  * pixels in the block around the modified pixel. This is a lot faster than calculating the total
  * sparsity value for the whole image again
  *
- * @author Lonneke Scheffer
+ * @author Lonneke Scheffer and Wout van Helvoirt
  */
 public final class DctCalculator {
 
@@ -43,8 +43,8 @@ public final class DctCalculator {
     /**
      * Create a new DCT calculator.
      *
-     * @param dctBlockSize the size for the DCT blocks
-     * @param matrix the matrix containing pixel values of the input image
+     * @param dctBlockSize The size for the DCT blocks
+     * @param matrix       The matrix containing pixel values of the input image
      */
     public DctCalculator(final int dctBlockSize, final int[][] matrix) {
         // Check if the given block size is a power of 2
@@ -78,7 +78,7 @@ public final class DctCalculator {
      * As stated in 'Imaging with a small number of photons', by P. A. Morris et
      * al.
      *
-     * @param inputMatrix the input matrix
+     * @param inputMatrix The input matrix
      * @return a measure of the sparsity of the matrix
      */
     private double[] calculateCoefficients(final int[][] inputMatrix) {
@@ -132,8 +132,8 @@ public final class DctCalculator {
     /**
      * Calculate the matrix sparsity from the given sum of absolute coefficients and sum of squared coefficients.
      *
-     * @param sumAbsoluteCoefficients the sum of the absolute coefficients
-     * @param sumSquaredAbsoluteCoefficients the sum of the squared coefficients
+     * @param sumAbsoluteCoefficients        The sum of the absolute coefficients
+     * @param sumSquaredAbsoluteCoefficients The sum of the squared coefficients
      * @return a measure for the matrix sparsity
      */
     private double calculateMatrixSparsity(final double sumAbsoluteCoefficients,
@@ -144,7 +144,7 @@ public final class DctCalculator {
     /**
      * Calculate the matrix sparsity from the given sum of absolute coefficients and sum of squared coefficients.
      *
-     * @param coefficients contains the sum of the absolute coefficients and the sum of the squared coefficients
+     * @param coefficients Contains the sum of the absolute coefficients and the sum of the squared coefficients
      * @return a measure for the matrix sparsity
      */
     private double calculateMatrixSparsity(final double[] coefficients) {
@@ -154,9 +154,9 @@ public final class DctCalculator {
     /**
      * This method is used to try out a modification of a pixel, to test what the new matrix sparsity would be.
      * 
-     * @param xCoordinate the x coordinate in the pixel matrix
-     * @param yCoordinate the y coordinate in the pixel matrix
-     * @param newColorValue the new color value for pixel (x, y)
+     * @param xCoordinate   The x coordinate in the pixel matrix
+     * @param yCoordinate   The y coordinate in the pixel matrix
+     * @param newColorValue The new color value for pixel (x, y)
      * @return the estimated new sparsity with this modification
      */
     public double tryModification(final int xCoordinate, final int yCoordinate, final int newColorValue) {
@@ -197,8 +197,8 @@ public final class DctCalculator {
      * When calculating the matrix sparsity, the total matrix is devided into dctBlockSize * dctBlockSize squares.
      * This method returns the square where the given coordinates belong to.
      *
-     * @param xCoordinate x coordinate within the dct part
-     * @param yCoordinate y coordinate within the dct part
+     * @param xCoordinate X coordinate within the dct part
+     * @param yCoordinate Y coordinate within the dct part
      * @return the dct part around the x and y coordinates
      */
     private int[][] getDctPart(final int xCoordinate, final int yCoordinate) {

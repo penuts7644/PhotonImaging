@@ -49,9 +49,8 @@ public final class Recursive_TIFF_Opener implements PlugIn {
     private int winWidth = 0;
 
     /**
-     * Run method gets executed when setup is finished and when the user selects
-     * this class via plug-ins in Fiji. This method does most of the work, calls
-     * all other methods in the right order.
+     * Run method gets executed when setup is finished and when the user selects this class via plug-ins
+     * in Fiji. This method does most of the work, calls all other methods in the right order.
      *
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
@@ -91,9 +90,8 @@ public final class Recursive_TIFF_Opener implements PlugIn {
     /**
      * This method searches the user given directory for each Tiff file.
      *
-     * When the first file has been found, setVirtualStack is called. For each
-     * directory found, searchDirectory is called un till all files are found.
-     * Each File is added to the VirtualStack.
+     * When the first file has been found, setVirtualStack is called. For each directory found,
+     * searchDirectory is called un till all files are found. Each File is added to the VirtualStack.
      *
      * @param dir File with user selected directory path.
      * @throws java.io.IOException

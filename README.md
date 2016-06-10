@@ -2,36 +2,66 @@
 
 ---------------------
 
-### What is this repository for? ###
+### About this project ###
 
 * Authors: Lonneke Scheffer & Wout van Helvoirt
 * Version: 1.0
-* This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.
+* This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and
+create a combined greyscale image with all found photons per pixel mapped to the correct pixel value.
 
-### How do I get set up? ###
+### Getting  set up ###
 
 * This plug-in requires at least [Java 8](https://www.oracle.com/downloads/index.html) to function.
 * Make sure that [Fiji](http://fiji.sc/) is installed on your Windows/Mac/Linux device and that Fiji uses Java 8.
+* The source has been written in IntelliJ IDEA 2016 and the project uses Maven for package management.
 
-### How do I use this web application? ###
+### How to use this application ###
 
-The plug-in (jar file) can be installed in Fiji via 'Plugins>Install PlugIn...'. After you installed the plug-in, restart Fiji.
-When correctly installed, you'll now have 'Plugins>Photon Image Processor' available.
+The plug-in (jar file) can be installed in Fiji via 'Plugins>Install PlugIn...'. After you installed the plug-in,
+restart Fiji. When correctly installed, you'll now have 'Plugins>Photon Image Processor' available.
 
-** Open TIFF Files **
+**Open TIFF Files**
 
-This option can be used to open all TIFF files in a directory as virtual stack. Each sub-directory in the user selected directory will be searched for any containing TIFF files. The opened virtual stack can be used as input for the 'Process Photon Images' option.
+This option can be used to open all TIFF files in a directory, and the directories below, as virtual stack. The opened
+virtual stack can be used as input for 'Process Photon Images'.
 
-** Process Photon Images **
+**Process Photon Images**
 
-This option is able to process a stack containing single photon events data and create a combined high resolution image. Each light point within the image (based on user given tolerance value) is being processed as photon. Each photon has a center that can be calculated in a fast or a more accurate way. The available calculations modes are:
+This option can be used to process a stack of single photon data (images containing single photon events), and create
+one high resolution output image. This output image might optionally be improved by 'Threshold Photon Count' and/or
+'Image Reconstructor'. There are 3 different methods to choose from to calculate the coordinates of the exact midpoints
+of the light blobs in the images. The available calculations modes are:
 
-* ** Fast ** uses the lightest points found as coordinates for the output image.
-* ** Accurate ** improves on fast by calculating the exact center from the light points before creating an output image.
-* ** Sub-pixel resolution ** uses the accurate method but outputs a higher resolution image with four times the amount of pixels. This requires a larger amount of images than the other methods.
+* **Fast** uses the lightest pixels found as coordinates for the output image.
+* **Accurate** improves on 'Fast' by also checking the pixels surrounding the lightest pixel to calculate a more
+accurate midpoint.
+* **Sub-pixel resolution** uses the accurate method to calculate the midpoints but creates an output image of a higher
+resolution (height * 2 and width * 2). This requires more input images and bigger lightblobs in those input images to
+work successfully.
 
-Photons are being counted and mapped to the correct pixel values to create a 16-bit output image. The output image may be used for the option 'Threshold Photon Count' to remove noise.
+**Threshold Photon Count**
 
-** Threshold Photon Count **
+This option can be used to filter noise from the output image created by 'Process Photon Images', and optionally prepare
+for 'Reconstruct Image'. All pixels below the 'threshold' value are set to 0, and the remaining pixels are scaled to new
+values.
 
-This option can be used to filter noise from the output image created by the 'Process Photon Images' option. All pixels will get a new value based on there current value minus the given threshold value.
+**Reconstruct Image**
+
+This option can be used to reconstruct the output image created by 'Process Photon Images'. The input image is
+reconstructed using the algorithm of the article 'Imaging with a small number of photons', by P. A. Morris et al.
+
+The original image is blurred and random changes are made. A check is performed to test whether the random changes have
+improved the image. This check includes testing for the log likelihood of the new image, and the sparsity of the new
+image. If there are very few possible modifications left that could improve the image, the method for changing random
+pixels is altered, so the modifications become less extreme and the image is finetuned. Parameter explanation and usage:
+* **Dark count rate** The dark count rate per pixel of the camera used to record the data.
+* **Regularization factor** indicates how important the log likelihood and image sparsity are compared to one another.
+A higher regularization factor results in a greater dependency of image sparsity, and a lower regularization factor
+makes the log likelihood more important.
+* **Modification threshold** The lower boundary for percentage of modifications that improve the image. In other words,
+how far the algorithm is proceeded. A higher percentage makes the algorithm quit earlier and makes the output image less
+defined. The lower the percentage is, the more the output image will eventually look like the input image.
+* **Multiply image colors** scaling value used to change the color of the input image, for instance when the input
+image is too dark to be clear.
+* **Blur radius** The blur radius for the gaussian blur filter. A bigger blur radius removes more detail from the
+original image, but also closes more gaps between pixels.
