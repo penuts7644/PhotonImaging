@@ -274,7 +274,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         this.outIp = ip.duplicate();
         this.blurrer.blurGaussian(outIp, this.blurRadius);
         this.outImp = new ImagePlus("Reconstructed Image (reconstructing...)", this.outIp);
-        //this.outImp = new ImagePlus("Reconstructed Image |blur:" + this.blurRadius + "|darkcount:" + this.darkCountRate + "|multip:" + this.multiplyColorValue + "|regfact:" + this.regularizationFactor, this.outIp);
         ImageWindow outputWindow = new ImageWindow(this.outImp);
         outputWindow.setVisible(true);
     }
@@ -360,9 +359,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      * @return boolean Telling whether the loop should continue.
      */
     private boolean testContinueLoop() {
-        //System.out.println((this.outIp.getWidth() * this.outIp.getHeight() / 10) + "");
 
-        //int iterationCheckpoint = this.outIp.getWidth() * this.outIp.getHeight() / 10;
         if (this.iterations % this.iterationsPerCheck == 0) {
             // In the original algorithm, every 3000 iterations
             // there was checked whether acceptedModifications < 5% of the last 1000 iterations
@@ -370,7 +367,6 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
             // This has been simplified to the following because it fits better with our data.
             if (this.acceptedModifications < this.modificationThreshold) {
                 this.scalingValue *= 0.9;
-                //System.out.println(this.scalingValue + ", " + ((System.currentTimeMillis() - this.time) / this.iterationsPerCheck) + ", " + this.iterations);
                 if (this.scalingValue < this.scalingValueCutoff) {
                     this.outImp.getWindow().setTitle("Reconstructed Image (done)");
                     return false;
@@ -426,7 +422,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
      */
     public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
-        Class<?> clazz = Image_Thresholder.class;
+        Class<?> clazz = Image_Reconstructor.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
         String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
         System.setProperty("plugins.dir", pluginsDir);
@@ -434,12 +430,16 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
         // start ImageJ
         new ImageJ();
 
-        // Only if you use new ImagePlus(path) to open the file
-        // image.show();
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }
 
+    /**
+     * This method tells the the runner the amount of runs get executed.
+     * Not used.
+     *
+     * @param nPasses Integer with the amount of runs to be called.
+     */
     @Override
     public void setNPasses(final int nPasses) {
     }

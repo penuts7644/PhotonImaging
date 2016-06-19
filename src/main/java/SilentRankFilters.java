@@ -115,8 +115,8 @@ public class SilentRankFilters implements PlugInFilter {
     /**
      * Filters an image by any method except 'despecle' or 'remove outliers'.
      *
-     * @param ip	The ImageProcessor that should be filtered (all 4 types supported)
-     * @param radius Determines the kernel size, see Process>Filters>Show Circular Masks. Must not be negative. No
+     * @param ip The ImageProcessor that should be filtered (all 4 types supported)
+     * @param radius Determines the kernel size. Must not be negative. No
      * checking is done for large values that would lead to excessive computing times.
      * @param filterType May be MEAN, MIN, MAX, VARIANCE, or MEDIAN.
      */
@@ -782,6 +782,7 @@ public class SilentRankFilters implements PlugInFilter {
 
     /**
      * @deprecated Not needed any more, use the rank(ip, ...) method, which creates the kernel
+     * @param radius double.
      */
     public void makeKernel(double radius) {
         this.radius = radius;

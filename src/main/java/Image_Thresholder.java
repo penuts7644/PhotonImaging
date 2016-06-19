@@ -233,8 +233,7 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
     /**
      * Main method for debugging.
      *
-     * For debugging, it is convenient to have a method that starts ImageJ,
-     * loads an image and calls the plug-in, e.g. after setting breakpoints.
+     * For debugging, it is convenient to have a method that starts ImageJ.
      * Main method will get executed when running this file from IDE.
      *
      * @param args unused
@@ -249,8 +248,6 @@ public final class Image_Thresholder implements ExtendedPlugInFilter, DialogList
         // start ImageJ
         new ImageJ();
 
-        // Only if you use new ImagePlus(path) to open the file
-        // image.show();
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }

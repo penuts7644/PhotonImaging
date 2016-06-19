@@ -242,7 +242,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
      * @param rawCoordinates A polygon containing the coordinates as found by MaximumFinder.
      */
     private void runPreview(final Polygon rawCoordinates) {
-        // Save the coordinates in a ROI, set the ROI and change the messagearea.
+        // Save the coordinates in a ROI, set the ROI and change the message area.
         PointRoi p = new PointRoi(rawCoordinates.xpoints, rawCoordinates.ypoints, rawCoordinates.npoints);
         this.image.setRoi(p);
         this.messageArea.setText((rawCoordinates.xpoints == null ? 0 : rawCoordinates.npoints) + " photons found");

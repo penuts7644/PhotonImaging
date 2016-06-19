@@ -109,7 +109,8 @@ public final class LogLikelihoodCalculator {
      */
     public double tryModification(int xCoordinate, int yCoordinate, int newColorValue) {
         if (xCoordinate > this.originalMatrix.length || yCoordinate > this.originalMatrix[0].length) {
-            throw new ArrayIndexOutOfBoundsException("Your given coordinates (" + xCoordinate + "," + yCoordinate + ") are outside the matrix.");
+            throw new ArrayIndexOutOfBoundsException("Your given coordinates (" + xCoordinate + "," + yCoordinate
+                    + ") are outside the matrix.");
         }
 
         // calculate the new log likelihood:

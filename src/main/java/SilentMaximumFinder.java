@@ -25,12 +25,12 @@ import java.util.*;
  * "Count" output type. version 28-May-2007 Michael Schmid. Preview added, bugfix: minima of calibrated images, uses
  * Arrays.sort version 07-Aug-2007 Fixed a bug that could delete particles when doing watershed segmentation of an EDM.
  * version 21-Apr-2007 Adapted for float instead of 16-bit EDM; correct progress bar on multiple calls version
- * 05-May-2009 Works for images>32768 pixels in width or height version 01-Nov-2009 Bugfix: extra lines in segmented
- * output eliminated; watershed is also faster now Maximum points encoded in long array for sorting instead of separete
- * objects that need gc New output type 'List' version 22-May-2011 Bugfix: Maximum search in EDM and float images with
- * large dynamic range could omit maxima version 13-Sep-2013 added the findMaxima() and findMinima() functions for
- * arrays (Norbert Vischer) version 20-Mar-2014 Watershed segmentation of EDM with tolerance>=1.0 does not kill fine
- * particles
+ * 05-May-2009 Works for images larger than 32768 pixels in width or height version 01-Nov-2009 Bugfix: extra lines in
+ * segmented output eliminated; watershed is also faster now Maximum points encoded in long array for sorting instead
+ * of separete objects that need gc New output type 'List' version 22-May-2011 Bugfix: Maximum search in EDM and float
+ * images with large dynamic range could omit maxima version 13-Sep-2013 added the findMaxima() and findMinima()
+ * functions for arrays (Norbert Vischer) version 20-Mar-2014 Watershed segmentation of EDM with tolerance larger or
+ * same as 1.0 does not kill fine particles
  */
 public class SilentMaximumFinder implements PlugInFilter {
 
@@ -224,7 +224,8 @@ public class SilentMaximumFinder implements PlugInFilter {
      * Calculates peak positions of 1D array N.Vischer, 13-sep-2013
      *
      * @param xx Array containing peaks.
-     * @param tolerance Depth of a qualified valley must exceed tolerance. Tolerance must be >= 0. Flat tops are marked
+     * @param tolerance Depth of a qualified valley must exceed tolerance. Tolerance must be larger/same as 0.
+     *                  Flat tops are marked
      * at their centers.
      * @param excludeOnEdges If 'true', a peak is only accepted if it is separated by two qualified valleys. If 'false',
      * a peak is also accepted if separated by one qualified valley and by a border.
@@ -305,6 +306,11 @@ public class SilentMaximumFinder implements PlugInFilter {
 
     /**
      * Returns minimum positions of array xx, sorted with decreasing strength
+     *
+     * @param xx double array.
+     * @param tolerance double.
+     * @param includeEdges boolean.
+     * @return int array with minima values.
      */
     public static int[] findMinima(double[] xx, double tolerance, boolean includeEdges) {
         int len = xx.length;

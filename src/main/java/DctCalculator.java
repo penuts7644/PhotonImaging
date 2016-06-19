@@ -92,18 +92,18 @@ public final class DctCalculator {
 
         // Loop through the whole matrix, by steps of size DCT block size.
         for (int matrixWidth = 0; matrixWidth < inputMatrix.length; matrixWidth += this.dctBlockSize) {
-            for (int matrixHeigth = 0; matrixHeigth < inputMatrix[0].length; matrixHeigth += this.dctBlockSize) {
+            for (int matrixHeight = 0; matrixHeight < inputMatrix[0].length; matrixHeight += this.dctBlockSize) {
                 // Loop through a part of the matrix of size DCT size x DCT size,
                 // and copy the values to a temporary matrix.
                 for (int partWidth = matrixWidth; partWidth < (matrixWidth + this.dctBlockSize); partWidth++) {
-                    for (int partHeigth = matrixHeigth; partHeigth < (matrixHeigth + this.dctBlockSize); partHeigth++) {
+                    for (int partHeigth = matrixHeight; partHeigth < (matrixHeight + this.dctBlockSize); partHeigth++) {
                         // If the matrix size is not a multiple of block size, an ArrayIndexOutOfBoundsException
                         // will occur at the edges of the image. Fill these positions in with zero.
                         try {
-                            dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeigth]
+                            dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeight]
                                     = (double) inputMatrix[partWidth][partHeigth];
                         } catch (ArrayIndexOutOfBoundsException ex) {
-                            dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeigth] = 0.0;
+                            dctInputMatrix[partWidth - matrixWidth][partHeigth - matrixHeight] = 0.0;
                         }
                     }
                 }
@@ -170,17 +170,16 @@ public final class DctCalculator {
         double[] originalMatrixPartCoefficients;
         double[] modifiedMatrixPartCoefficients;
 
-        // Cut out the parts of the total matrix where the modification is actually happening
+        // Cut out the parts of the total matrix where the modification is actually happening.
         originalMatrixPart = this.getDctPart(xCoordinate, yCoordinate);
         modifiedMatrixPart = this.getDctPart(xCoordinate, yCoordinate);
         modifiedMatrixPart[xCoordinate % this.dctBlockSize][yCoordinate % this.dctBlockSize] = newColorValue;
 
-        // Calculate the coefficients for the parts with and without the modification
+        // Calculate the coefficients for the parts with and without the modification.
         originalMatrixPartCoefficients = this.calculateCoefficients(originalMatrixPart);
         modifiedMatrixPartCoefficients = this.calculateCoefficients(modifiedMatrixPart);
 
-        // Estimate the new coefficients and sparsity based on the outcomes for the small matrices
-        // save those values.
+        // Estimate the new coefficients and sparsity based on the outcomes for the small matrices, save those values.
         this.temporaryCoefficients[0] = this.totalCoefficients[0]
                                         - originalMatrixPartCoefficients[0] 
                                         + modifiedMatrixPartCoefficients[0];
@@ -208,7 +207,7 @@ public final class DctCalculator {
         int i;
         int j;
 
-        // get the start values of the dct block within the complete matrix
+        // get the start values of the dct block within the complete matrix.
         xStart = xCoordinate - (xCoordinate % this.dctBlockSize);
         yStart = yCoordinate - (yCoordinate % this.dctBlockSize);
 

@@ -52,6 +52,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      * Run method gets executed when setup is finished and when the user selects this class via plug-ins
      * in Fiji. This method does most of the work, calls all other methods in the right order.
      *
+     * @param arg String if about should be shown.
      * @see ij.plugin.filter.PlugInFilter#run(ij.process.ImageProcessor)
      */
     @Override
@@ -96,7 +97,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      * @param dir File with user selected directory path.
      * @throws java.io.IOException
      */
-    public void searchDirectory(String dir) throws IOException {
+    private void searchDirectory(String dir) throws IOException {
 
         // Walk through given directory and do for each TIFF file (also hidden) something.
         Files.walk(Paths.get(dir), Integer.MAX_VALUE).filter((filePath) -> {
@@ -113,8 +114,8 @@ public final class Recursive_TIFF_Opener implements PlugIn {
                 this.vis.addSlice(filePath.toString().replace(this.dir, ""));
 
                 // If VirtualStack not yet set, set it (Only the first found TIFF file go's in here) and add TIFF file.
-            } else if (this.vis == null) {
-                setVirtualStack(filePath);
+            } else {
+                this.setVirtualStack(filePath);
                 this.vis.addSlice(filePath.toString().replace(this.dir, ""));
             }
         });
@@ -125,7 +126,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      *
      * @param filePath File path with tiff image.
      */
-    public void setVirtualStack(Path filePath) {
+    private void setVirtualStack(Path filePath) {
         ImagePlus imp = new ImagePlus(filePath.toString());
 
         // Get height and width of ImagePlus and set VirtualStack.
@@ -162,7 +163,7 @@ public final class Recursive_TIFF_Opener implements PlugIn {
      */
     public static void main(final String[] args) {
         // set the plugins.dir property to make the plug-in appear in the Plugins menu
-        Class<?> clazz = Image_Thresholder.class;
+        Class<?> clazz = Recursive_TIFF_Opener.class;
         String url = clazz.getResource("/" + clazz.getName().replace('.', '/') + ".class").toString();
         String pluginsDir = url.substring(5, url.length() - clazz.getName().length() - 6);
         System.setProperty("plugins.dir", pluginsDir);
@@ -170,8 +171,6 @@ public final class Recursive_TIFF_Opener implements PlugIn {
         // start ImageJ
         new ImageJ();
 
-        // Only if you use new ImagePlus(path) to open the file
-        // image.show();
         // run the plug-in
         IJ.runPlugIn(clazz.getName(), "");
     }
