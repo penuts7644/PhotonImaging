@@ -29,13 +29,12 @@
     </properties>
 
     <name>PhotonImaging</name>
-    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.</description>
+    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined greyscale image with all found photons per pixel mapped to the correct pixel value.</description>
 
     <url>https://github.com/penuts7644/PhotonImaging</url>
     <inceptionYear>2015</inceptionYear>
     <organization>
-        <name>PhotonImaging</name>
-        <url>https://github.com/penuts7644/PhotonImaging</url>
+        <name>None</name>
     </organization>
     <licenses>
         <license>
@@ -79,12 +78,6 @@
             <name>None</name>
         </contributor>
     </contributors>
-
-    <mailingLists>
-        <mailingList>
-            <name>None</name>
-        </mailingList>
-    </mailingLists>
 
     <scm>
         <connection>scm:git:git://github.com/penuts7644/PhotonImaging</connection>

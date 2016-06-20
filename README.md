@@ -13,12 +13,18 @@ create a combined greyscale image with all found photons per pixel mapped to the
 
 * This plug-in requires at least [Java 8](https://www.oracle.com/downloads/index.html) to function.
 * Make sure that [Fiji](http://fiji.sc/) is installed on your Windows/Mac/Linux device and that Fiji uses Java 8.
-* The source has been written in IntelliJ IDEA 2016 and the project uses Maven for package management.
+* The source has been written in IntelliJ IDEA 2016 and the project uses Maven for package management and building.
 
 ### How to use this application ###
 
-The plug-in (jar file) can be installed in Fiji via 'Plugins>Install PlugIn...'. After you installed the plug-in,
-restart Fiji. When correctly installed, you'll now have 'Plugins>Photon Image Processor' available.
+There are two ways of installing the plug-in. For developers, who cloned this project and build a jar file via maven,
+you can install the plug-in in Fiji via 'Plugins>Install PlugIn...'. Users can add the update site
+'http://sites.imagej.net/PhotonImaging/' via the 'Update...>Manage update sites>Add update site' commands. This will
+prompt you to download the plug-in the next time Fiji searches for updates.
+
+After you installed the plug-in, restart Fiji. When correctly installed, you'll now have
+'Plugins>Photon Image Processor' available. If you have added the update site, you will automatically receive updates
+for the plug-in when their released.
 
 **Open TIFF Files**
 
