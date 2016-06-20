@@ -1,22 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>net.imagej</groupId>
+        <artifactId>pom-imagej</artifactId>
+        <version>15.6.0</version>
+        <relativePath />
+    </parent>
+
     <groupId>nl.bioinf.lscheffer_wvanhelvoirt</groupId>
-    <artifactId>PhotonImaging</artifactId>
+    <artifactId>Photon_Imaging</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
+
     <dependencies>
-        <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>ij</artifactId>
-            <version>1.51a</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
         </dependency>
     </dependencies>
+
     <properties>
         <main-class>Photon_Image_Processor</main-class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -24,8 +28,22 @@
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
-    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.</description>
     <name>PhotonImaging</name>
+    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined grayscale image with all found photons per pixel mapped to the correct pixel value.</description>
+
+    <url>https://github.com/penuts7644/PhotonImaging</url>
+    <inceptionYear>2015</inceptionYear>
+    <organization>
+        <name>PhotonImaging</name>
+        <url>https://github.com/penuts7644/PhotonImaging</url>
+    </organization>
+    <licenses>
+        <license>
+            <name>GNU General Public License</name>
+            <url>http://www.gnu.org/licenses/</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <developers>
         <developer>
@@ -34,8 +52,10 @@
             <email>wout.van.helvoirt@gmail.com</email>
             <url>http://www.bioinf.nl/~wvanhelvoirt</url>
             <roles>
-                    <role>architect</role>
-                    <role>developer</role>
+                <role>developer</role>
+                <role>debugger</role>
+                <role>support</role>
+                <role>maintainer</role>
             </roles>
             <timezone>+1</timezone>
         </developer>
@@ -45,10 +65,40 @@
             <email>lonsch96@live.nl</email>
             <url>http://www.bioinf.nl/~lscheffer</url>
             <roles>
-                    <role>architect</role>
-                    <role>developer</role>
+                <role>developer</role>
+                <role>debugger</role>
+                <role>support</role>
+                <role>maintainer</role>
             </roles>
             <timezone>+1</timezone>
         </developer>
     </developers>
+
+    <contributors>
+        <contributor>
+            <name>None</name>
+        </contributor>
+    </contributors>
+
+    <mailingLists>
+        <mailingList>
+            <name>None</name>
+        </mailingList>
+    </mailingLists>
+
+    <scm>
+        <connection>scm:git:git://github.com/penuts7644/PhotonImaging</connection>
+        <developerConnection>scm:git:git@github.com:penuts7644/PhotonImaging</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/penuts7644/PhotonImaging</url>
+    </scm>
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/penuts7644/PhotonImaging/issues</url>
+    </issueManagement>
+    <ciManagement>
+        <system>GitHub</system>
+        <url>https://github.com/penuts7644/PhotonImaging</url>
+    </ciManagement>
+
 </project>
