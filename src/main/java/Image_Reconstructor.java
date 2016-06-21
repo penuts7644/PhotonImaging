@@ -25,6 +25,7 @@ import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
+
 import java.awt.AWTEvent;
 import java.util.Random;
 
@@ -47,7 +48,7 @@ public final class Image_Reconstructor implements ExtendedPlugInFilter, DialogLi
 
     // Variables used for the original algoritm of Morris et al.
     /** The estimated dark count rate of the camera. */
-    private double darkCountRate = 0.00017;
+    private double darkCountRate = 0.1;
     /** The regularization factor (lambda).
      * Used to determine the importance of log likelihood versus image sparsity (DCT value). */
     private double regularizationFactor = 0.5;

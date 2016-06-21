@@ -23,6 +23,7 @@ import ij.plugin.filter.ExtendedPlugInFilter;
 import ij.plugin.filter.PlugInFilter;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.process.ImageProcessor;
+
 import java.awt.AWTEvent;
 import java.util.SortedSet;
 import java.util.TreeSet;
