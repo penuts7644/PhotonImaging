@@ -34,9 +34,7 @@
     </properties>
 
     <name>PhotonImaging</name>
-    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of
-        each photon and create a combined greyscale image with all found photons per pixel mapped to the correct pixel
-        value.</description>
+    <description>This plug-in for ImageJ is able to process single photon event data, by locating the center point of each photon and create a combined greyscale image with all found photons per pixel mapped to the correct pixel value.</description>
 
     <url>https://github.com/penuts7644/PhotonImaging</url>
     <inceptionYear>2015</inceptionYear>
