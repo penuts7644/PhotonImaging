@@ -44,7 +44,7 @@ import java.util.List;
  * This class is able to process a stack containing single photon events data
  * and create a combined hi-res image. Each light point within the image (based
  * on user given tolerance value) is being processed as photon. Each photon has
- * a center that can be calculated in a fast or a more accurate way. There are
+ * a center that can be calculated in a simple or a more accurate way. There are
  * two accurate calculations available. One to create a higher resolution image
  * with four times the amount of pixels (sub-pixel resolution) or one with
  * normal resolution. Photons are being counted and mapped to the correct pixel
@@ -68,8 +68,8 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     private double tolerance = 100;
     /** This boolean tells whether the user wants to perform preprocessing. */
     private boolean preprocessing = true;
-    /** The output method (fast/accurate/sub-pixel resolution) is set to fast. */
-    private String method = "Fast";
+    /** The output method (simple/accurate/sub-pixel resolution) is set to simple. */
+    private String method = "Simple";
     /** This label is used to show the number of maxima found. */
     private Label messageArea;
     /** The number of passes for the progress bar, default is 0. */
@@ -135,7 +135,7 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
 
         // Add fields to dialog.
         gd.addNumericField("Noise tolerance", this.tolerance, 0);
-        gd.addChoice("Method", new String[]{"Fast", "Accurate", "Subpixel resolution"}, "Fast");
+        gd.addChoice("Method", new String[]{"Simple", "Accurate", "Subpixel resolution"}, "Simple");
         gd.addCheckbox("Automatic preprocessing", true);
         gd.addPreviewCheckbox(pfr, "Enable preview...");
         gd.addMessage("    "); //space for number of maxima
@@ -224,8 +224,8 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
         // If previewing enabled, show found maxima's on slice.
         if (this.previewing) {
             this.runPreview(rawCoordinates);
-        } else if (this.method.equals("Fast")) {
-            this.processPhotonsFast(rawCoordinates);
+        } else if (this.method.equals("Simple")) {
+            this.processPhotonsSimple(rawCoordinates);
         } else if (this.method.equals("Accurate")) {
             processPhotonsAccurate(ip, rawCoordinates);
         } else { // this.method equals "Subpixel resolution"
@@ -249,12 +249,12 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
     }
 
     /**
-     * This method is called when processing photons using the 'fast' method.
+     * This method is called when processing photons using the 'simple' method.
      * All photons are added to the photon count matrix, without altering.
      *
      * @param rawCoordinates A polygon containing the coordinates as found by MaximumFinder.
      */
-    private void processPhotonsFast(final Polygon rawCoordinates) {
+    private void processPhotonsSimple(final Polygon rawCoordinates) {
         // Loop through all raw coordinates and add them to the count matrix.
         for (int i = 0; i < rawCoordinates.npoints; i++) {
             this.photonCountMatrix[rawCoordinates.xpoints[i]][rawCoordinates.ypoints[i]]++;
@@ -408,8 +408,8 @@ public final class Photon_Image_Processor implements ExtendedPlugInFilter, Dialo
                 + "There are 3 different methods to choose from to calculate the coordinates of the exact midpoints "
                 + "of the light blobs in the images."
                 + "<ul>"
-                + "<li><b>Fast</b>: uses the lightest pixels found as coordinates for the output image."
-                + "<li><b>Accurate</b>: improves on fast by also checking the pixels surrounding the lightest pixel "
+                + "<li><b>Simple</b>: uses the lightest pixels found as coordinates for the output image."
+                + "<li><b>Accurate</b>: improves on simple by also checking the pixels surrounding the lightest pixel "
                 + "to calculate a more accurate midpoint."
                 + "<li><b>Sub-pixel resolution</b> uses the accurate method to calculate the midpoints but creates "
                 + "an output image of a higher resolution (height * 2 and width * 2). This requires more input images "

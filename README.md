@@ -40,8 +40,8 @@ one high resolution output image. This output image might optionally be improved
 'Image Reconstructor'. There are 3 different methods to choose from to calculate the coordinates of the exact midpoints
 of the light blobs in the images. The available calculations modes are:
 
-* **Fast** uses the lightest pixels found as coordinates for the output image.
-* **Accurate** improves on 'Fast' by also checking the pixels surrounding the lightest pixel to calculate a more
+* **Simple** uses the lightest pixels found as coordinates for the output image.
+* **Accurate** improves on 'Simple' by also checking the pixels surrounding the lightest pixel to calculate a more
 accurate midpoint.
 * **Sub-pixel resolution** uses the accurate method to calculate the midpoints but creates an output image of a higher
 resolution (height * 2 and width * 2). This requires more input images and bigger lightblobs in those input images to
