@@ -51,10 +51,10 @@
 
     <developers>
         <developer>
-            <id>wvh</id>
-            <name>Wout van Helvoirt</name>
-            <email>wout.van.helvoirt@gmail.com</email>
-            <url>http://www.bioinf.nl/~wvanhelvoirt</url>
+            <id>ls</id>
+            <name>Lonneke Scheffer</name>
+            <email>lonsch96@live.nl</email>
+            <url>http://www.bioinf.nl/~lscheffer</url>
             <roles>
                 <role>developer</role>
                 <role>debugger</role>
@@ -64,10 +64,10 @@
             <timezone>+1</timezone>
         </developer>
         <developer>
-            <id>ls</id>
-            <name>Lonneke Scheffer</name>
-            <email>lonsch96@live.nl</email>
-            <url>http://www.bioinf.nl/~lscheffer</url>
+            <id>wvh</id>
+            <name>Wout van Helvoirt</name>
+            <email>wout.van.helvoirt@gmail.com</email>
+            <url>http://www.bioinf.nl/~wvanhelvoirt</url>
             <roles>
                 <role>developer</role>
                 <role>debugger</role>
